@@ -107,3 +107,10 @@ CREATE TABLE IF NOT EXISTS public.customer_special_prices (
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (customer_id, product_id)
 );
+
+-- 8. APP SETTINGS
+CREATE TABLE IF NOT EXISTS public.app_settings (
+  id text PRIMARY KEY,
+  value text NOT NULL,
+  updated_at timestamptz DEFAULT now()
+);

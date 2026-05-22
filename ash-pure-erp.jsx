@@ -4,35 +4,20 @@ import ProductMovementToggle from "./src/components/ProductMovementToggle.jsx";
 import CustomerSpecialPrices from "./src/components/CustomerSpecialPrices.jsx";
 import DashboardWasteSummary from "./src/components/DashboardWasteSummary.jsx";
 
-// ==================== SUPABASE CONFIG ====================
-// Replace with your actual Supabase credentials
-const SUPABASE_URL = "https://your-project.supabase.co";
-const SUPABASE_ANON_KEY = "your-anon-key";
+// ==================== SUPABASE CLIENT ====================
+import { supabase, supabaseAdmin } from "./src/lib/supabaseClient.js";
 
-// Mock Supabase client (replace with real @supabase/supabase-js in production)
-const supabase = {
-  from: (table) => ({
-    select: (cols = "*") => ({
-      order: (col, opts) => ({ data: [], error: null }),
-      eq: (col, val) => ({ data: [], error: null }),
-      data: [], error: null
-    }),
-    insert: (data) => ({ data, error: null }),
-    update: (data) => ({ eq: (col, val) => ({ data, error: null }) }),
-    delete: () => ({ eq: (col, val) => ({ data: null, error: null }) }),
-  }),
-  auth: {
-    signInWithPassword: async ({ email, password }) => {
-      if (email === "admin@ashpure.com" && password === "admin123") {
-        return { data: { user: { id: "1", email, role: "admin" } }, error: null };
-      }
-      if (email === "sales@ashpure.com" && password === "sales123") {
-        return { data: { user: { id: "2", email, role: "sales" } }, error: null };
-      }
-      return { data: null, error: { message: "بيانات الدخول غير صحيحة" } };
-    },
-    signOut: async () => ({ error: null }),
-  }
+// ==================== EXCEL EXPORT HELPER ====================
+const exportToExcel = (rows, filename) => {
+  if (!rows || rows.length === 0) return;
+  const headers = Object.keys(rows[0]);
+  const csvRows = [headers.join(","), ...rows.map(r =>
+    headers.map(h => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(",")
+  )];
+  const blob = new Blob(["\uFEFF" + csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
 };
 
 // ==================== INITIAL MOCK DATA ====================
@@ -69,7 +54,7 @@ const INITIAL_SPECIAL_PRICES = [
   { id: 2, customerId: 1, productId: 2, specialPrice: 180, minQty: 1, createdAt: "2026-05-20", updatedAt: "2026-05-20" }
 ];
 
-const CATEGORIES = ["شامبو", "كريمات", "سيروم", "بلسم", "زيوت", "ماسك", "تونك", "أخرى"];
+const CATEGORIES = ["بروتين", "اسبري", "اسبراي تساقط", "مجموعه", "أخرى"];
 const PAYMENT_METHODS = [
   { id: "cash", label: "كاش", icon: "💵" },
   { id: "deferred", label: "آجل", icon: "📋" },
@@ -143,19 +128,28 @@ const downloadInvoicePDF = async (invoice, isSharing = false) => {
   `).join("");
 
   const subtotal = invoice.subtotal || invoice.items.reduce((s, i) => s + i.total, 0);
-  const discountAmt = (subtotal * (invoice.discount || 0)) / 100;
+  // discount is now a fixed amount in EGP
+  const discountAmt = invoice.discount || 0;
+  const discountPct = subtotal > 0 ? ((discountAmt / subtotal) * 100).toFixed(1) : 0;
   const taxAmt = ((subtotal - discountAmt) * (invoice.tax || 0)) / 100;
   const total = invoice.total;
 
   container.innerHTML = `
     <!-- Header -->
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #8B7355; padding-bottom: 20px; margin-bottom: 30px;">
-      <div>
-        <h1 style="margin: 0; font-size: 32px; font-weight: 900; color: #8B7355; letter-spacing: 2px;">ASH PURE</h1>
-        <p style="margin: 5px 0 0; font-size: 13px; color: #666666;">العناية الفائقة بالشعر والبشرة</p>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <img
+          src="${window.location.origin}/ashh.png"
+          alt="Ash Pure Logo"
+          style="height: 70px; width: auto; object-fit: contain;"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+        />
+        <div style="display:none;">
+          <h1 style="margin: 0; font-size: 32px; font-weight: 900; color: #8B7355; letter-spacing: 2px;">ASH PURE</h1>
+          <p style="margin: 5px 0 0; font-size: 13px; color: #666666;">العناية الفائقة بالشعر والبشرة</p>
+        </div>
       </div>
 
-      <!-- Waste & Gifts Summary removed from PDF invoice -->
       <div style="text-align: left;">
         <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: #111111;">فاتورة مبيعات</h2>
         <p style="margin: 5px 0 0; font-size: 14px; font-weight: 600; color: #8B7355;">رقم الفاتورة: ${invoice.id}</p>
@@ -208,9 +202,9 @@ const downloadInvoicePDF = async (invoice, isSharing = false) => {
           <span style="color: #666666;">المجموع الفرعي:</span>
           <span style="font-weight: 600;">${formatCurrency(subtotal)}</span>
         </div>
-        ${invoice.discount > 0 ? `
+        ${discountAmt > 0 ? `
         <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #4CAF85;">
-          <span>خصم (${invoice.discount}%):</span>
+          <span>خصم (${discountPct}%): </span>
           <span>- ${formatCurrency(discountAmt)}</span>
         </div>` : ""}
         ${invoice.tax > 0 ? `
@@ -566,14 +560,21 @@ function LoginPage({ onLogin }) {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
-    if (err) setError(err.message);
-    else {
-      const roleMap = { "admin@ashpure.com": "admin", "sales@ashpure.com": "sales" };
-      onLogin({ ...data.user, role: roleMap[email] || "admin", name: email === "admin@ashpure.com" ? "المدير العام" : "موظف مبيعات" });
+    try {
+      const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) { setError(err.message); setLoading(false); return; }
+      // Fetch profile for role and name
+      const { data: profile, error: profErr } = await supabase
+        .from("profiles").select("name, role").eq("id", data.user.id).single();
+      if (profErr || !profile) { setError("لم يتم العثور على ملف المستخدم. تأكد من تشغيل SQL script."); setLoading(false); return; }
+      onLogin({ ...data.user, role: profile.role, name: profile.name });
+    } catch (ex) {
+      setError("حدث خطأ غير متوقع. تأكد من اتصال الإنترنت.");
     }
     setLoading(false);
   };
+
+  const roleLabels = { admin: "مدير النظام", sales: "مندوب مبيعات", warehouse: "مدير المخزن" };
 
   return (
     <div className="login-bg">
@@ -598,9 +599,8 @@ function LoginPage({ onLogin }) {
           </button>
         </form>
         <div style={{ marginTop: 24, padding: "16px", background: "var(--bg3)", borderRadius: "var(--radius-sm)", fontSize: 12, color: "var(--text3)" }}>
-          <div style={{ marginBottom: 6, fontWeight: 600, color: "var(--text2)" }}>حسابات تجريبية:</div>
-          <div>المدير: admin@ashpure.com / admin123</div>
-          <div>المبيعات: sales@ashpure.com / sales123</div>
+          <div style={{ marginBottom: 4, fontWeight: 600, color: "var(--text2)" }}>ادخل بريدك الإلكتروني وكلمة المرور من Supabase Auth.</div>
+          <div style={{ marginTop: 2 }}>الأدوار المتاحة: <strong style={{color:"var(--gold)"}}>admin</strong> · <strong style={{color:"var(--green)"}}>sales</strong> · <strong style={{color:"var(--blue)"}}>warehouse</strong></div>
         </div>
       </div>
     </div>
@@ -914,7 +914,7 @@ function WasteModal({ products, onSave, onClose }) {
   );
 }
 
-function ProductsPage({ products, setProducts, wasteLogs = [], setWasteLogs, user, showNotif }) {
+function ProductsPage({ products, setProducts, wasteLogs = [], setWasteLogs, user, showNotif, reloadData }) {
   const [subTab, setSubTab] = useState("list"); // "list" or "waste"
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("الكل");
@@ -939,52 +939,59 @@ function ProductsPage({ products, setProducts, wasteLogs = [], setWasteLogs, use
     return matchesSearch && matchesType;
   });
 
-  const handleSave = (prod) => {
+  const handleSave = async (prod) => {
+    const payload = {
+      name: prod.name, sku: prod.sku, barcode: prod.barcode, category: prod.category,
+      stock: prod.qty, cost: prod.buyPrice, price_retail: prod.clientPrice,
+      price_specialist: prod.specialistPrice, price_dealer: prod.traderPrice,
+      traderPrice: prod.traderPrice, specialistPrice: prod.specialistPrice, clientPrice: prod.clientPrice,
+      supplier: prod.supplier, expiry: prod.expiry || null, min_qty: prod.minQty, notes: prod.notes,
+    };
     if (prod.id && products.find(p => p.id === prod.id)) {
-      setProducts(ps => ps.map(p => p.id === prod.id ? prod : p));
+      const { error } = await supabase.from("products").update(payload).eq("id", prod.id);
+      if (error) { showNotif("خطأ عند تحديث المنتج: " + error.message, "error"); return; }
       showNotif("تم تحديث المنتج بنجاح", "success");
     } else {
-      setProducts(ps => [...ps, prod]);
+      const { error } = await supabase.from("products").insert(payload);
+      if (error) { showNotif("خطأ عند إضافة المنتج: " + error.message, "error"); return; }
       showNotif("تم إضافة المنتج بنجاح", "success");
     }
     setModal(null);
+    if (reloadData) reloadData();
   };
 
-  const handleDelete = (id) => {
-    setProducts(ps => ps.filter(p => p.id !== id));
+  const handleDelete = async (id) => {
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) { showNotif("خطأ عند الحذف: " + error.message, "error"); return; }
     showNotif("تم حذف المنتج", "error");
     setDeleteId(null);
+    if (reloadData) reloadData();
   };
 
-  const handleSaveWaste = (data) => {
+  const handleSaveWaste = async (data) => {
     const prod = products.find(p => p.id === data.productId);
     if (!prod) return;
-    const cost = prod.buyPrice * data.qty;
-    const newLog = {
-      id: generateId("WST"),
-      productId: data.productId,
+    // Insert waste_log — the DB trigger will auto-deduct stock
+    const { error } = await supabase.from("waste_logs").insert({
+      product_id: data.productId,
       qty: data.qty,
       type: data.type,
-      cost,
-      createdBy: user?.email || "admin@ashpure.com",
-      createdAt: new Date().toISOString().split("T")[0],
-      notes: data.notes
-    };
-    // Decrease stock
-    setProducts(ps => ps.map(p => p.id === data.productId ? { ...p, qty: p.qty - data.qty } : p));
-    // Add to wasteLogs
-    if (setWasteLogs) setWasteLogs(ws => [newLog, ...ws]);
+      cost: prod.buyPrice * data.qty,
+      notes: data.notes || null,
+created_by: user?.id || null,  // UUID, not email
+    });
+    if (error) { showNotif("خطأ: " + error.message, "error"); return; }
     showNotif(data.type === "waste" ? "تم تسجيل هالك وتحديث المخزون" : "تم تسجيل هدية وتحديث المخزون", "success");
     setWasteModal(null);
+    if (reloadData) reloadData();
   };
 
-  const handleDeleteWaste = (log) => {
+  const handleDeleteWaste = async (log) => {
     if (confirm("هل أنت متأكد من حذف هذه الحركة وإرجاع الكمية للمخزون؟")) {
-      // Restore stock quantity
-      setProducts(ps => ps.map(p => p.id === log.productId ? { ...p, qty: p.qty + log.qty } : p));
-      // Delete waste log
-      if (setWasteLogs) setWasteLogs(ws => ws.filter(x => x.id !== log.id));
+      const { error } = await supabase.from("waste_logs").delete().eq("id", log.id);
+      if (error) { showNotif("خطأ عند الحذف: " + error.message, "error"); return; }
       showNotif("تم حذف الحركة وإرجاع المخزون بنجاح", "success");
+      if (reloadData) reloadData();
     }
   };
 
@@ -1168,7 +1175,7 @@ function ProductsPage({ products, setProducts, wasteLogs = [], setWasteLogs, use
 }
 
 // ==================== POS ====================
-function POSPage({ products, setProducts, customers, invoices, setInvoices, showNotif, customerTypes, wasteLogs, setWasteLogs }) {
+function POSPage({ products, setProducts, customers, invoices, setInvoices, showNotif, customerTypes, wasteLogs, setWasteLogs, user, reloadData }) {
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState([]);
   const [customerType, setCustomerType] = useState("client");
@@ -1267,55 +1274,46 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
 
   // subtotal counts only actual sales
   const subtotal = cart.reduce((s, i) => s + (i.movement_type === 'sale' ? i.total : 0), 0);
-  const discountAmt = (subtotal * discount) / 100;
+  // discount is now a fixed amount in EGP (not a percentage)
+  const discountAmt = discount || 0;
+  const discountPct = subtotal > 0 ? ((discountAmt / subtotal) * 100).toFixed(1) : 0;
   const taxAmt = ((subtotal - discountAmt) * tax) / 100;
   const total = subtotal - discountAmt + taxAmt;
   const remaining = paymentMethod === "deferred" ? total - (+paidAmount || 0) : 0;
   const totalCartQty = cart.reduce((s, item) => s + item.qty, 0);
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) return showNotif("السلة فارغة", "warning");
     if (paymentMethod === "deferred" && !selectedCustomer) return showNotif("اختر العميل للدفع الآجل", "warning");
-
-    const invoiceItems = cart.map(i => ({ ...i }));
-
-    const invoice = {
-      id: generateId("INV"), customerId: selectedCustomer?.id || null,
-      customerName: selectedCustomer?.name || "عميل نقدي", customerType,
-      customerPhone: selectedCustomer?.phone || "",
-      items: invoiceItems, subtotal, discount, tax, total,
-      paid: paymentMethod === "deferred" ? (+paidAmount || 0) : total,
-      remaining, paymentMethod, date: new Date().toISOString().split("T")[0],
-      dueDate: dueDate || null, status: remaining > 0 ? "partial" : "paid"
-    };
-
-    setInvoices(prev => [invoice, ...prev]);
-    setProducts(prev => prev.map(p => {
-      const cartItem = cart.find(i => i.productId === p.id);
-      return cartItem ? { ...p, qty: p.qty - cartItem.qty } : p;
-    }));
-    // Create waste/gift logs locally and prepend to wasteLogs
-    const newLogs = [];
-    cart.forEach(i => {
-      if (i.movement_type === 'gift' || i.movement_type === 'waste') {
-        const product = products.find(p => p.id === i.productId);
-        const costPerUnit = product ? product.buyPrice : 0;
-        const cost = costPerUnit * i.qty;
-        newLogs.push({ id: generateId('WST'), productId: i.productId, qty: i.qty, type: i.movement_type, cost, created_by: user?.id || 'local', created_at: new Date().toISOString(), notes: i.notes || '' });
-      }
+    const invoiceId = generateId("INV");
+    const paidAmt = paymentMethod === "deferred" ? (+paidAmount || 0) : total;
+    const { error: invErr } = await supabase.from("invoices").insert({
+      id: invoiceId, customer_id: selectedCustomer?.id || null,
+      customer_name: selectedCustomer?.name || "عميل نقدي", customer_type: customerType,
+      customer_phone: selectedCustomer?.phone || "",
+      subtotal, discount, tax, total, paid: paidAmt, remaining,
+      payment_method: paymentMethod, date: new Date().toISOString().split("T")[0],
+      due_date: dueDate || null, status: remaining > 0 ? "partial" : "paid",
+      created_by: (user?.id ?? null),
     });
-    if (newLogs.length > 0 && setWasteLogs) setWasteLogs(prev => [...newLogs, ...prev]);
-    if (selectedCustomer && remaining > 0) {
-      // Update customer balance - in real app this would update DB
-    }
-
-    setShowSuccess(invoice);
-    setCart([]);
-    setSearch("");
-    setDiscount(0);
-    setTax(0);
-    setPaidAmount("");
-    showNotif(`تم إنشاء الفاتورة ${invoice.id} بنجاح`, "success");
+    if (invErr) { showNotif("خطأ عند إنشاء الفاتورة: " + invErr.message, "error"); return; }
+    const itemRows = cart.map(i => ({
+      invoice_id: invoiceId, product_id: i.productId, name: i.name,
+      qty: i.qty, price: i.price, total: i.total, movement_type: i.movement_type || "sale",
+    }));
+    const { error: itmErr } = await supabase.from("invoice_items").insert(itemRows);
+    if (itmErr) { showNotif("خطأ عند حفظ بنود الفاتورة: " + itmErr.message, "error"); return; }
+    if (selectedCustomer && remaining > 0)
+      await supabase.from("customers").update({ balance: (selectedCustomer.balance || 0) + remaining }).eq("id", selectedCustomer.id);
+    const displayInvoice = {
+      id: invoiceId, customerName: selectedCustomer?.name || "عميل نقدي",
+      date: new Date().toISOString().split("T")[0], total,
+      items: cart.map(i => ({ name: i.name, qty: i.qty, total: i.total })),
+    };
+    setShowSuccess(displayInvoice);
+    setCart([]); setSearch(""); setDiscount(0); setTax(0); setPaidAmount("");
+    showNotif(`تم إنشاء الفاتورة ${invoiceId} بنجاح`, "success");
+    if (reloadData) reloadData();
   };
 
   return (
@@ -1524,8 +1522,8 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
           <div className="cart-footer">
             <div className="grid grid-2" style={{ marginBottom: 12 }}>
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">خصم %</label>
-                <input className="form-control" type="number" min="0" max="100" value={discount} onChange={e => setDiscount(+e.target.value)} />
+                <label className="form-label">خصم بالجنيه (ج.م)</label>
+                <input className="form-control" type="number" min="0" value={discount} onChange={e => setDiscount(+e.target.value)} placeholder="0" />
               </div>
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label">ضريبة %</label>
@@ -1560,7 +1558,7 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
 
             <div style={{ padding: "12px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", marginBottom: 12 }}>
               <div className="total-row"><span>المجموع الفرعي</span><span>{formatCurrency(subtotal)}</span></div>
-              {discount > 0 && <div className="total-row" style={{ color: "var(--green)" }}><span>خصم ({discount}%)</span><span>- {formatCurrency(discountAmt)}</span></div>}
+              {discountAmt > 0 && <div className="total-row" style={{ color: "var(--green)" }}><span>خصم ({discountPct}%)</span><span>- {formatCurrency(discountAmt)}</span></div>}
               {tax > 0 && <div className="total-row" style={{ color: "var(--text2)" }}><span>ضريبة ({tax}%)</span><span>+ {formatCurrency(taxAmt)}</span></div>}
               {paymentMethod === "deferred" && paidAmount && <div className="total-row" style={{ color: "var(--green)" }}><span>المدفوع</span><span>{formatCurrency(+paidAmount)}</span></div>}
               {remaining > 0 && <div className="total-row" style={{ color: "var(--red)" }}><span>المتبقي</span><span>{formatCurrency(remaining)}</span></div>}
@@ -1705,7 +1703,7 @@ function CustomerModal({ customer, onSave, onClose }) {
   );
 }
 
-function CustomersPage({ customers, setCustomers, invoices, showNotif, customerTypes }) {
+function CustomersPage({ customers, setCustomers, invoices, showNotif, customerTypes, reloadData }) {
   const [modal, setModal] = useState(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("الكل");
@@ -1718,15 +1716,19 @@ function CustomersPage({ customers, setCustomers, invoices, showNotif, customerT
 
   const getCustomerInvoices = (id) => invoices.filter(inv => inv.customerId === id);
 
-  const handleSave = (c) => {
+  const handleSave = async (c) => {
+    const payload = { name: c.name, phone: c.phone, address: c.address, type: c.type, notes: c.notes };
     if (customers.find(x => x.id === c.id)) {
-      setCustomers(cs => cs.map(x => x.id === c.id ? c : x));
+      const { error } = await supabase.from("customers").update(payload).eq("id", c.id);
+      if (error) { showNotif("خطأ: " + error.message, "error"); return; }
       showNotif("تم تحديث بيانات العميل", "success");
     } else {
-      setCustomers(cs => [...cs, c]);
+      const { error } = await supabase.from("customers").insert({ ...payload, balance: 0, total_purchases: 0 });
+      if (error) { showNotif("خطأ: " + error.message, "error"); return; }
       showNotif("تم إضافة العميل بنجاح", "success");
     }
     setModal(null);
+    if (reloadData) reloadData();
   };
 
   const typeLabel = (type) => customerTypes.find(t => t.id === type)?.label || type;
@@ -2239,18 +2241,274 @@ function ReportsPage({ invoices, products, customers, wasteLogs = [] }) {
 }
 
 // ==================== SETTINGS ====================
-function SettingsPage({ user, showNotif }) {
+function SettingsPage({ user, showNotif, reloadData }) {
   const [activeTab, setActiveTab] = useState("general");
   const [settings, setSettings] = useState({
     companyName: "Ash Pure", taxRate: 14, currency: "ج.م", lowStockAlert: 10,
     address: "القاهرة، مصر", phone: "01000000000", email: "info@ashpure.com"
   });
 
+  // ── Profiles & User management ─────────────────────────
+  const [profiles, setProfiles] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [addUserModal, setAddUserModal] = useState(false);
+  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "sales" });
+
+  const loadProfiles = useCallback(async () => {
+    setUsersLoading(true);
+    try {
+      const { data, error } = await supabase.from("profiles").select("*").order("created_at");
+      if (error) throw error;
+      if (data) setProfiles(data);
+    } catch (e) {
+      showNotif("خطأ أثناء تحميل المستخدمين: " + e.message, "error");
+    }
+    setUsersLoading(false);
+  }, [showNotif]);
+
+  useEffect(() => {
+    if (activeTab === "users") loadProfiles();
+  }, [activeTab, loadProfiles]);
+
+  const handleUpdateRole = async (userId, newRole) => {
+    try {
+      const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
+      if (error) throw error;
+      showNotif("تم تحديث دور المستخدم بنجاح", "success");
+      loadProfiles();
+    } catch (e) {
+      showNotif("خطأ: " + e.message, "error");
+    }
+  };
+
+  const handleCreateUserSubmit = async (e) => {
+    e.preventDefault();
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      showNotif("يرجى ملء جميع الحقول المطلوبة", "warning");
+      return;
+    }
+    if (!supabaseAdmin) {
+      showNotif("خطأ: مفتاح الخدمة غير موجود. تأكد من ملف .env", "error");
+      return;
+    }
+    try {
+      // Create auth user directly using admin client
+      const { data: newAuthUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: newUser.email,
+        password: newUser.password,
+        email_confirm: true,
+        user_metadata: { name: newUser.name, role: newUser.role }
+      });
+      if (createError) throw createError;
+
+      // Update the profile with name and role
+      if (newAuthUser?.user) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({ role: newUser.role, name: newUser.name })
+          .eq('id', newAuthUser.user.id);
+      }
+
+      showNotif("تم إضافة المستخدم بنجاح", "success");
+      setAddUserModal(false);
+      setNewUser({ name: "", email: "", password: "", role: "sales" });
+      loadProfiles();
+    } catch (e) {
+      showNotif("فشل إضافة المستخدم: " + e.message, "error");
+    }
+  };
+
+  // ── Client-side Excel/XLSX Importer ────────────────────────
+  const [xlsxFile, setXlsxFile] = useState(null);
+  const [xlsxSheets, setXlsxSheets] = useState([]);
+  const [selectedSheet, setSelectedSheet] = useState("");
+  const [targetTable, setTargetTable] = useState("products");
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importTotal, setImportTotal] = useState(0);
+  const [parsedRows, setParsedRows] = useState([]);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setXlsxFile(file);
+    try {
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = new Uint8Array(event.target.result);
+        const workbook = window.XLSX.read(data, { type: "array" });
+        setXlsxSheets(workbook.SheetNames);
+        if (workbook.SheetNames.length > 0) {
+          setSelectedSheet(workbook.SheetNames[0]);
+          parseSheetData(workbook, workbook.SheetNames[0]);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (err) {
+      showNotif("فشل تحميل مكتبة قراءة Excel: " + err.message, "error");
+    }
+  };
+
+  const parseSheetData = (workbook, sheetName) => {
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = window.XLSX.utils.sheet_to_json(worksheet);
+    setParsedRows(jsonData);
+  };
+
+  const handleSheetChange = (e) => {
+    const name = e.target.value;
+    setSelectedSheet(name);
+    if (xlsxFile) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = new Uint8Array(event.target.result);
+        const workbook = window.XLSX.read(data, { type: "array" });
+        parseSheetData(workbook, name);
+      };
+      reader.readAsArrayBuffer(xlsxFile);
+    }
+  };
+
+  const startImport = async () => {
+    if (parsedRows.length === 0) {
+      showNotif("لا توجد بيانات صالحة للاستيراد في هذه الصفحة", "warning");
+      return;
+    }
+    setImporting(true);
+    setImportProgress(0);
+
+    // Deduplicate parsedRows based on targetTable
+    let dedupedRows = [];
+    if (targetTable === "products") {
+      const seen = new Map();
+      parsedRows.forEach(row => {
+        const pName = row["الاسم"] || row["المنتج"] || row["اسم المنتج"] || row["name"] || row["ProductName"];
+        const sku = String(row["sku"] || row["كود"] || row["الرمز"] || row["الكود"] || "").trim();
+        const key = sku || String(pName).trim(); // Dedupe by SKU or Name
+        if (key && !seen.has(key)) {
+          seen.set(key, row);
+        } else if (key && seen.has(key)) {
+          // If duplicate found, we can sum quantities or just ignore. 
+          // The request says "لو فيه حاجه متكرره يشلها" (if there is something duplicate, remove it).
+          // We will just keep the first one and skip/remove the duplicates.
+        }
+      });
+      dedupedRows = Array.from(seen.values());
+    } else {
+      const seen = new Map();
+      parsedRows.forEach(row => {
+        const cName = String(row["الاسم"] || row["العميل"] || row["اسم العميل"] || row["name"] || row["CustomerName"]).trim();
+        const phone = String(row["الهاتف"] || row["الهاتف"] || row["phone"] || "").trim();
+        const key = phone || cName;
+        if (key && !seen.has(key)) {
+          seen.set(key, row);
+        }
+      });
+      dedupedRows = Array.from(seen.values());
+    }
+
+    setImportTotal(dedupedRows.length);
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let index = 0; index < dedupedRows.length; index++) {
+      const row = dedupedRows[index];
+      try {
+        if (targetTable === "products") {
+          // Detect fields mapping
+          const pName = row["الاسم"] || row["المنتج"] || row["اسم المنتج"] || row["name"] || row["ProductName"];
+          if (!pName) continue; // Skip empty rows without name
+
+          const retailVal = parseFloat(String(
+            row["العميل العادي"] || row["سعر العميل العادي"] || row["العميل"] || row["سعر العميل"] || 
+            row["سعر البيع"] || row["البيع"] || row["price_retail"] || row["clientPrice"] || 0
+          ).replace(/[^\d.]/g, "")) || 0;
+
+          const dealerVal = parseFloat(String(
+            row["التاجر"] || row["سعر التاجر"] || row["تاجر"] || row["سعر تاجر"] || 
+            row["جملة"] || row["سعر الجملة"] || row["price_dealer"] || row["traderPrice"] || 0
+          ).replace(/[^\d.]/g, "")) || 0;
+
+          const specialistVal = parseFloat(String(
+            row["المتخصصة"] || row["سعر المتخصصة"] || row["متخصصة"] || row["سعر متخصصة"] || 
+            row["price_specialist"] || row["specialistPrice"] || 0
+          ).replace(/[^\d.]/g, "")) || 0;
+
+          const stockVal = parseFloat(String(
+            row["الكمية المكتوبة"] || row["الكمية"] || row["الرصيد"] || row["stock"] || 
+            row["qty"] || row["الكمية الحالية"] || 0
+          ).replace(/[^\d.]/g, "")) || 0;
+
+          const payload = {
+            name: String(pName).trim(),
+            sku: String(row["sku"] || row["كود"] || row["الرمز"] || row["الكود"] || generateId("AP")).trim(),
+            barcode: row["الباركود"] || row["باركود"] || row["barcode"] || null,
+            category: row["الفئة"] || row["القسم"] || row["التصنيف"] || row["category"] || "أخرى",
+            stock: stockVal,
+            cost: parseFloat(String(row["cost"] || row["التكلفة"] || row["سعر الشراء"] || 0).replace(/[^\d.]/g, "")) || 0,
+            price_retail: retailVal,
+            price_specialist: specialistVal,
+            price_dealer: dealerVal,
+            traderPrice: dealerVal,
+            specialistPrice: specialistVal,
+            clientPrice: retailVal,
+            supplier: row["المورد"] || row["supplier"] || "مورد عام",
+            notes: row["ملاحظات"] || row["notes"] || null,
+            min_qty: parseInt(row["min_qty"] || row["الحد الأدنى"] || 10),
+          };
+
+          const { error } = await supabase.from("products").upsert(payload, { onConflict: "sku" });
+          if (error) throw error;
+        } else {
+          // Customers mapping
+          const cName = row["الاسم"] || row["العميل"] || row["اسم العميل"] || row["name"] || row["CustomerName"];
+          if (!cName) continue;
+
+          let cType = "client";
+          const rawType = String(row["type"] || row["النوع"] || row["الفئة"] || "").toLowerCase();
+          if (rawType.includes("trader") || rawType.includes("تاجر")) cType = "trader";
+          else if (rawType.includes("specialist") || rawType.includes("متخصصة")) cType = "specialist";
+
+          const payload = {
+            name: String(cName).trim(),
+            phone: row["الهاتف"] || row["الهاتف"] || row["phone"] || null,
+            address: row["العنوان"] || row["address"] || null,
+            type: cType,
+            balance: parseFloat(row["balance"] || row["الرصيد"] || row["المديونية"] || 0),
+            notes: row["ملاحظات"] || row["notes"] || null,
+          };
+          const { error } = await supabase.from("customers").insert(payload);
+          if (error) throw error;
+        }
+        successCount++;
+      } catch (err) {
+        console.error("Import row error:", err);
+        failCount++;
+      }
+      setImportProgress(index + 1);
+    }
+
+    setImporting(false);
+    showNotif(`اكتمل الاستيراد: تم بنجاح ${successCount}، وفشل ${failCount}`, failCount > 0 ? "warning" : "success");
+    setXlsxFile(null);
+    setParsedRows([]);
+    if (reloadData) reloadData();
+  };
+
+  const ROLE_LABELS = { admin: "مدير النظام", sales: "مندوب مبيعات", warehouse: "مدير المخزن" };
+
   return (
     <div>
       <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 20 }}>الإعدادات</h2>
-      <div className="tabs" style={{ maxWidth: 500 }}>
-        {[["general", "عام"], ["users", "المستخدمون"], ["backup", "النسخ الاحتياطي"]].map(([id, label]) => (
+      <div className="tabs" style={{ maxWidth: 650 }}>
+        {[
+          ["general", "عام"],
+          ...(user.role === "admin" ? [["users", "المستخدمون"]] : []),
+          ...(user.role === "admin" ? [["import", "استيراد البيانات"]] : []),
+          ["backup", "النسخ الاحتياطي"]
+        ].map(([id, label]) => (
           <div key={id} className={`tab ${activeTab === id ? "active" : ""}`} onClick={() => setActiveTab(id)}>{label}</div>
         ))}
       </div>
@@ -2297,40 +2555,372 @@ function SettingsPage({ user, showNotif }) {
       )}
 
       {activeTab === "users" && (
-        <div className="card" style={{ maxWidth: 600 }}>
-          <div className="card-header"><span className="card-title">إدارة المستخدمين</span></div>
-          {[
-            { name: "المدير العام", email: "admin@ashpure.com", role: "admin", roleLabel: "مدير" },
-            { name: "موظف المبيعات", email: "sales@ashpure.com", role: "sales", roleLabel: "مبيعات" },
-          ].map((u, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 0", borderBottom: "1px solid var(--border)" }}>
-              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, var(--gold), var(--gold-dark))", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16, color: "#000" }}>
-                {u.name.charAt(0)}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600 }}>{u.name}</div>
-                <div style={{ fontSize: 12, color: "var(--text3)" }}>{u.email}</div>
-              </div>
-              <span className="badge badge-gold">{u.roleLabel}</span>
+        <div className="card" style={{ maxWidth: 700 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <span className="card-title">إدارة المستخدمين والصلاحيات</span>
+            <button className="btn btn-primary btn-sm" onClick={() => setAddUserModal(true)}><Icon name="plus" size={14} />إضافة مستخدم جديد</button>
+          </div>
+          {usersLoading ? (
+            <div style={{ textAlign: "center", padding: 24 }}>⏳ جاري تحميل المستخدمين...</div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>المستخدم</th>
+                    <th>البريد الإلكتروني</th>
+                    <th>الدور الحالي</th>
+                    <th>تغيير الصلاحية</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {profiles.map(p => (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 600 }}>{p.name || "مستخدم جديد"}</td>
+                      <td style={{ color: "var(--text2)" }}>{p.email}</td>
+                      <td>
+                        <span className={`badge ${p.role === "admin" ? "badge-gold" : p.role === "warehouse" ? "badge-blue" : "badge-green"}`}>
+                          {ROLE_LABELS[p.role] || p.role}
+                        </span>
+                      </td>
+                      <td>
+                        {p.id !== user.id ? (
+                          <select className="form-control" style={{ padding: "4px 8px", fontSize: 12, height: "auto", width: 130 }} value={p.role} onChange={(e) => handleUpdateRole(p.id, e.target.value)}>
+                            <option value="admin">مدير النظام</option>
+                            <option value="sales">مندوب مبيعات</option>
+                            <option value="warehouse">مدير المخزن</option>
+                          </select>
+                        ) : (
+                          <span style={{ fontSize: 11, color: "var(--text3)" }}>حسابك الحالي</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
-          <div style={{ marginTop: 16 }}>
-            <div className="alert alert-warning"><Icon name="warning" size={14} />لإضافة مستخدمين جدد، قم بإضافتهم عبر Supabase Dashboard ثم تحديد الدور في قاعدة البيانات.</div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "import" && (
+        <div className="card" style={{ maxWidth: 650 }}>
+          <div className="card-header"><span className="card-title">إستيراد البيانات من Excel (ASH.xlsx)</span></div>
+          <p style={{ color: "var(--text2)", fontSize: 13, marginBottom: 16 }}>
+            يمكنك رفع شيت الإكسيل الخاص بالمنتجات أو العملاء ليقوم النظام تلقائياً بفرز البيانات ومطابقتها ورفعها مباشرة إلى قاعدة بيانات Supabase.
+          </p>
+
+          <div className="form-group">
+            <label className="form-label">اختر جدول الهدف في قاعدة البيانات</label>
+            <div style={{ display: "flex", gap: 16, marginTop: 6 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                <input type="radio" checked={targetTable === "products"} onChange={() => setTargetTable("products")} /> المنتجات والمخزون
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                <input type="radio" checked={targetTable === "customers"} onChange={() => setTargetTable("customers")} /> العملاء والمديونيات
+              </label>
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginTop: 16 }}>
+            <label className="form-label">اختر ملف Excel (.xlsx / .xls)</label>
+            <input type="file" accept=".xlsx, .xls" className="form-control" onChange={handleFileChange} />
+          </div>
+
+          {xlsxSheets.length > 0 && (
+            <div className="form-group" style={{ marginTop: 12 }}>
+              <label className="form-label">اختر صفحة العمل (Sheet) داخل الملف</label>
+              <select className="form-control" value={selectedSheet} onChange={handleSheetChange}>
+                {xlsxSheets.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
+
+          {parsedRows.length > 0 && (
+            <div style={{ background: "var(--bg)", padding: 12, borderRadius: 8, marginTop: 16, border: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}>
+                <span>عدد السجلات المكتشفة: <strong>{parsedRows.length} سجل</strong></span>
+                <span style={{ color: "var(--gold)" }}>الجدول المستهدف: <strong>{targetTable === "products" ? "products" : "customers"}</strong></span>
+              </div>
+              <p style={{ fontSize: 11, color: "var(--text3)", margin: 0 }}>
+                * سيقوم النظام بمطابقة الأعمدة تلقائياً (مثل الاسم، الباركود، الكمية، السعر، الهاتف، العنوان، إلخ).
+              </p>
+            </div>
+          )}
+
+          {importing && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
+                <span>جاري استيراد ورفع البيانات...</span>
+                <span>{importProgress} / {importTotal}</span>
+              </div>
+              <div style={{ width: "100%", height: 8, background: "var(--border)", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ width: `${(importProgress / importTotal) * 100}%`, height: "100%", background: "var(--gold)", transition: "width 0.1s" }} />
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginTop: 20 }}>
+            <button className="btn btn-primary" onClick={startImport} disabled={importing || parsedRows.length === 0} style={{ width: "100%", justifyContent: "center" }}>
+              {importing ? "⏳ جاري الاستيراد..." : "🚀 ابدأ استيراد البيانات لقاعدة البيانات"}
+            </button>
           </div>
         </div>
       )}
 
       {activeTab === "backup" && (
         <div className="card" style={{ maxWidth: 600 }}>
-          <div className="card-header"><span className="card-title">النسخ الاحتياطي والاستعادة</span></div>
+          <div className="card-header"><span className="card-title">النسخ الاحتياطي التلقائي (Google Sheets)</span></div>
+          <p style={{ fontSize: 13, color: "var(--text2)", marginBottom: 16 }}>
+            بمجرد إدخال بريدك الإلكتروني أدناه، سيتم إنشاء ملف Google Sheets تلقائياً يحتوي على كافة البيانات (مبيعات، فواتير، عملاء، منتجات) وسيتم تحديثه مع كل عملية تتم على الموقع.
+          </p>
+          <div className="form-group">
+            <label className="form-label">البريد الإلكتروني (Gmail)</label>
+            <div style={{ display: "flex", gap: 10 }}>
+              <input 
+                className="form-control" 
+                type="email" 
+                placeholder="example@gmail.com" 
+                value={settings.backupEmail || ""} 
+                onChange={e => setSettings(s => ({ ...s, backupEmail: e.target.value }))} 
+              />
+              <button className="btn btn-primary" onClick={async () => {
+                if(!settings.backupEmail) return showNotif("يرجى إدخال البريد الإلكتروني", "warning");
+                showNotif("جاري تفعيل النسخ الاحتياطي التلقائي...", "info");
+                try {
+                  const { error } = await supabase.from('app_settings').upsert({ id: 'backup_email', value: settings.backupEmail });
+                  if(error) throw error;
+                  // Trigger Edge Function to create/share sheet
+                  const session = (await supabase.auth.getSession()).data.session;
+                  if (!session) {
+                    throw new Error("لم يتم العثور على جلسة تسجيل دخول نشطة. يرجى تسجيل الدخول مجدداً.");
+                  }
+                  
+                  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-google-sheets`, {
+                    method: "POST",
+                    headers: { 
+                      "Content-Type": "application/json", 
+                      "Authorization": `Bearer ${session.access_token}`,
+                      "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({ action: "setup", email: settings.backupEmail })
+                  });
+                  
+                  if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || errData.message || `خطأ من الخادم (كود: ${res.status})`);
+                  }
+                  
+                  showNotif("تم تفعيل النسخ الاحتياطي بنجاح! سيصلك بريد إلكتروني برابط الشيت.", "success");
+                } catch(err) {
+                  showNotif("فشل التفعيل: " + err.message, "error");
+                }
+              }}>
+                <Icon name="check" size={16} /> تفعيل
+              </button>
+            </div>
+          </div>
+          
+          <hr style={{ border: "0", borderTop: "1px solid var(--border)", margin: "24px 0" }} />
+          
+          <div className="card-header"><span className="card-title">نسخ احتياطي يدوي</span></div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <button className="btn btn-secondary" onClick={() => showNotif("جاري تحميل النسخة الاحتياطية...", "success")} style={{ justifyContent: "flex-start" }}>
+            <button className="btn btn-secondary" onClick={async () => {
+              showNotif("جاري تجهيز النسخة الاحتياطية (JSON)...", "info");
+              try {
+                const { data: dbProducts } = await supabase.from('products').select('*');
+                const { data: dbCustomers } = await supabase.from('customers').select('*');
+                const { data: dbInvoices } = await supabase.from('invoices').select('*');
+                const { data: dbItems } = await supabase.from('invoice_items').select('*');
+                
+                const backupData = {
+                  products: dbProducts || [],
+                  customers: dbCustomers || [],
+                  invoices: dbInvoices || [],
+                  invoice_items: dbItems || [],
+                  exportedAt: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `Ash_Pure_ERP_Backup_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showNotif("📥 تم تحميل نسخة JSON بنجاح!", "success");
+              } catch (e) {
+                showNotif("فشل تصدير النسخة الاحتياطية: " + e.message, "error");
+              }
+            }} style={{ justifyContent: "flex-start" }}>
               <Icon name="download" size={16} />تحميل نسخة احتياطية (JSON)
             </button>
-            <button className="btn btn-secondary" style={{ justifyContent: "flex-start" }}>
+            <button className="btn btn-secondary" onClick={async () => {
+              showNotif("⏳ جاري تجهيز ملف Excel وتحميل البيانات...", "info");
+              try {
+                await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+                
+                const { data: dbProducts, error: pe } = await supabase.from('products').select('*');
+                const { data: dbCustomers, error: ce } = await supabase.from('customers').select('*');
+                const { data: dbInvoices, error: ie } = await supabase.from('invoices').select('*');
+                const { data: dbItems, error: ite } = await supabase.from('invoice_items').select('*');
+                
+                if (pe || ce || ie || ite) {
+                  throw new Error((pe?.message || ce?.message || ie?.message || ite?.message || "فشل جلب البيانات من الخادم"));
+                }
+                
+                const productsSheetData = (dbProducts || []).map(p => ({
+                  'اسم المنتج': p.name,
+                  'SKU': p.sku,
+                  'الباركود': p.barcode,
+                  'التصنيف': p.category,
+                  'المخزون': p.qty,
+                  'التكلفة': p.buyPrice,
+                  'سعر بيع التجزئة': p.clientPrice,
+                  'سعر الجملة': p.traderPrice,
+                  'سعر الأخصائي': p.specialistPrice,
+                  'تاريخ الصلاحية': p.expiry
+                }));
+                
+                const customersSheetData = (dbCustomers || []).map(c => ({
+                  'اسم العميل': c.name,
+                  'الهاتف': c.phone,
+                  'العنوان': c.address,
+                  'الفئة': c.type === 'trader' ? 'تاجر جملة' : c.type === 'specialist' ? 'أخصائي' : 'عميل تجزئة',
+                  'الرصيد المتبقي (دين)': c.balance,
+                  'إجمالي المشتريات': c.totalPurchases,
+                  'ملاحظات': c.notes
+                }));
+                
+                const invoicesSheetData = (dbInvoices || []).map(inv => {
+                  const invItems = dbItems ? dbItems.filter(i => i.invoice_id === inv.id) : [];
+                  const itemsStr = invItems.map(i => `${i.name} (${i.qty})`).join(', ');
+                  return {
+                    'رقم الفاتورة': inv.id,
+                    'التاريخ': inv.date,
+                    'العميل': inv.customer_name,
+                    'رقم الهاتف': inv.customer_phone,
+                    'نوع العميل': inv.customer_type === 'trader' ? 'تاجر جملة' : inv.customer_type === 'specialist' ? 'أخصائي' : 'عميل تجزئة',
+                    'المنتجات': itemsStr,
+                    'المجموع الفرعي': inv.subtotal,
+                    'الخصم': inv.discount,
+                    'الضريبة': inv.tax,
+                    'الإجمالي': inv.total,
+                    'المدفوع': inv.paid,
+                    'المتبقي': inv.remaining,
+                    'طريقة الدفع': inv.payment_method === 'cash' ? 'كاش' : inv.payment_method === 'deferred' ? 'آجل' : inv.payment_method === 'bank' ? 'تحويل بنكي' : inv.payment_method === 'vodafone' ? 'فودافون كاش' : 'إنستا باي',
+                    'الحالة': inv.status === 'paid' ? 'مدفوعة بالكامل' : 'مدفوعة جزئياً'
+                  };
+                });
+
+                const invoicesByCustomer = {};
+                (dbInvoices || []).forEach(inv => {
+                  const name = inv.customer_name || 'عميل نقدي';
+                  if (!invoicesByCustomer[name]) {
+                    invoicesByCustomer[name] = [];
+                  }
+                  invoicesByCustomer[name].push(inv);
+                });
+
+                const wb = window.XLSX.utils.book_new();
+                
+                // Append main sheets
+                if (productsSheetData.length > 0) {
+                  const wsProducts = window.XLSX.utils.json_to_sheet(productsSheetData);
+                  window.XLSX.utils.book_append_sheet(wb, wsProducts, "المنتجات");
+                }
+                if (customersSheetData.length > 0) {
+                  const wsCustomers = window.XLSX.utils.json_to_sheet(customersSheetData);
+                  window.XLSX.utils.book_append_sheet(wb, wsCustomers, "العملاء");
+                }
+                if (invoicesSheetData.length > 0) {
+                  const wsInvoices = window.XLSX.utils.json_to_sheet(invoicesSheetData);
+                  window.XLSX.utils.book_append_sheet(wb, wsInvoices, "جميع الفواتير");
+                }
+                
+                // Append sheets per customer
+                Object.keys(invoicesByCustomer).forEach(custName => {
+                  let cleanName = custName.replace(/[\\\/\?\*\:\[\]]/g, '').trim();
+                  if (cleanName.length > 31) cleanName = cleanName.substring(0, 31);
+                  cleanName = cleanName || "عميل غير معروف";
+                  
+                  const custSheetData = invoicesByCustomer[custName].map(inv => {
+                    const invItems = dbItems ? dbItems.filter(i => i.invoice_id === inv.id) : [];
+                    const itemsStr = invItems.map(i => `${i.name} (${i.qty})`).join(', ');
+                    return {
+                      'رقم الفاتورة': inv.id,
+                      'التاريخ': inv.date,
+                      'المنتجات المشتراة': itemsStr,
+                      'المجموع الفرعي': inv.subtotal,
+                      'الخصم': inv.discount,
+                      'الضريبة': inv.tax,
+                      'الإجمالي': inv.total,
+                      'المدفوع': inv.paid,
+                      'المتبقي': inv.remaining,
+                      'طريقة الدفع': inv.payment_method === 'cash' ? 'كاش' : inv.payment_method === 'deferred' ? 'آجل' : inv.payment_method === 'bank' ? 'تحويل بنكي' : inv.payment_method === 'vodafone' ? 'فودافون كاش' : 'إنستا باي'
+                    };
+                  });
+                  
+                  if (custSheetData.length > 0) {
+                    const wsCust = window.XLSX.utils.json_to_sheet(custSheetData);
+                    window.XLSX.utils.book_append_sheet(wb, wsCust, cleanName);
+                  }
+                });
+                
+                const wbout = window.XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const xlsxBlob = new Blob([wbout], { type: 'application/octet-stream' });
+                const xlsxUrl = URL.createObjectURL(xlsxBlob);
+                const xlsxLink = document.createElement('a');
+                xlsxLink.href = xlsxUrl;
+                xlsxLink.download = `Ash_Pure_ERP_Backup_${new Date().toISOString().split('T')[0]}.xlsx`;
+                xlsxLink.click();
+                URL.revokeObjectURL(xlsxUrl);
+                showNotif("📥 تم تحميل ملف Excel بنجاح!", "success");
+              } catch (e) {
+                showNotif("فشل تصدير Excel: " + e.message, "error");
+              }
+            }} style={{ justifyContent: "flex-start" }}>
               <Icon name="download" size={16} />تصدير قاعدة البيانات (Excel)
             </button>
             <div className="alert alert-warning"><Icon name="warning" size={14} />يُنصح بأخذ نسخة احتياطية أسبوعياً. Supabase يحتفظ بنسخ احتياطية تلقائية.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {addUserModal && (
+        <div className="modal-backdrop">
+          <div className="modal" style={{ maxWidth: 450 }}>
+            <div className="modal-header">
+              <span className="modal-title">إضافة مستخدم جديد</span>
+              <button className="btn-icon" onClick={() => setAddUserModal(false)}><Icon name="close" size={18} /></button>
+            </div>
+            <form onSubmit={handleCreateUserSubmit}>
+              <div className="form-group">
+                <label className="form-label">الاسم بالكامل</label>
+                <input className="form-control" required placeholder="مثال: أحمد محمد" value={newUser.name} onChange={e => setNewUser(prev => ({ ...prev, name: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">البريد الإلكتروني</label>
+                <input className="form-control" type="email" required placeholder="user@example.com" value={newUser.email} onChange={e => setNewUser(prev => ({ ...prev, email: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">كلمة المرور</label>
+                <input className="form-control" type="password" required minLength={6} placeholder="••••••" value={newUser.password} onChange={e => setNewUser(prev => ({ ...prev, password: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">الصلاحية / الدور</label>
+                <select className="form-control" value={newUser.role} onChange={e => setNewUser(prev => ({ ...prev, role: e.target.value }))}>
+                  <option value="admin">مدير النظام (Admin)</option>
+                  <option value="sales">مندوب مبيعات (Sales)</option>
+                  <option value="warehouse">مدير المخزن (Warehouse)</option>
+                </select>
+              </div>
+              <div className="modal-footer" style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setAddUserModal(false)}>إلغاء</button>
+                <button type="submit" className="btn btn-primary">إضافة المستخدم</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -2353,24 +2943,71 @@ function Notifications({ notifs }) {
 export default function App() {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("dashboard");
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
-  const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
-  const [invoices, setInvoices] = useState(INITIAL_INVOICES);
-  const [wasteLogs, setWasteLogs] = useState(INITIAL_WASTE_LOGS);
+  const [products, setProducts] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [wasteLogs, setWasteLogs] = useState([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [notifs, setNotifs] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
 
+  const mapProduct = r => ({
+    id: r.id, name: r.name, sku: r.sku || "", barcode: r.barcode || "",
+    category: r.category || "", qty: r.stock ?? 0, buyPrice: r.cost ?? 0,
+    sellPrice: r.price_retail ?? 0, traderPrice: r.traderPrice ?? r.price_dealer ?? 0,
+    specialistPrice: r.specialistPrice ?? r.price_specialist ?? 0,
+    clientPrice: r.clientPrice ?? r.price_retail ?? 0,
+    supplier: r.supplier || "", expiry: r.expiry || "", minQty: r.min_qty ?? 10,
+    notes: r.notes || "", image: r.image || null,
+  });
+  const mapCustomer = r => ({
+    id: r.id, name: r.name, phone: r.phone || "", address: r.address || "",
+    type: r.type || "client", balance: r.balance ?? 0,
+    totalPurchases: r.total_purchases ?? 0, notes: r.notes || "",
+  });
+  const mapInvoice = (r, allItems) => ({
+    id: r.id, customerId: r.customer_id, customerName: r.customer_name,
+    customerType: r.customer_type, customerPhone: r.customer_phone || "",
+    items: (allItems || []).filter(i => i.invoice_id === r.id).map(i => ({
+      productId: i.product_id, name: i.name, qty: i.qty,
+      price: i.price, total: i.total, movement_type: i.movement_type || "sale",
+    })),
+    subtotal: r.subtotal ?? 0, discount: r.discount ?? 0, tax: r.tax ?? 0,
+    total: r.total ?? 0, paid: r.paid ?? 0, remaining: r.remaining ?? 0,
+    paymentMethod: r.payment_method, date: r.date, dueDate: r.due_date || null,
+    status: r.status,
+  });
+  const mapWasteLog = r => ({
+    id: r.id, productId: r.product_id, qty: r.qty, type: r.type,
+    cost: r.cost ?? 0, createdBy: r.created_by, createdAt: r.created_at, notes: r.notes || "",
+  });
+
+  const loadData = useCallback(async () => {
+    if (!user) return;
+    try {
+      const [pR, cR, iR, itmR, wR] = await Promise.all([
+        supabase.from("products").select("*").order("name"),
+        supabase.from("customers").select("*").order("name"),
+        supabase.from("invoices").select("*").order("created_at", { ascending: false }),
+        supabase.from("invoice_items").select("*"),
+        supabase.from("waste_logs").select("*").order("created_at", { ascending: false }),
+      ]);
+      if (pR.data)   setProducts(pR.data.map(mapProduct));
+      if (cR.data)   setCustomers(cR.data.map(mapCustomer));
+      if (iR.data && itmR.data) setInvoices(iR.data.map(r => mapInvoice(r, itmR.data)));
+      if (wR.data)   setWasteLogs(wR.data.map(mapWasteLog));
+    } catch (e) { console.error("Supabase load error:", e); }
+    setDataLoaded(true);
+  }, [user]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
   const dynamicCustomerTypes = useMemo(() => {
     const list = [...CUSTOMER_TYPES];
     customers.forEach(c => {
-      if (c.type && !list.some(t => t.id === c.type)) {
-        list.push({
-          id: c.type,
-          label: c.type,
-          priceKey: c.priceKey || "clientPrice"
-        });
-      }
+      if (c.type && !list.some(t => t.id === c.type))
+        list.push({ id: c.type, label: c.type, priceKey: c.priceKey || "clientPrice" });
     });
     return list;
   }, [customers]);
@@ -2391,27 +3028,39 @@ export default function App() {
     </>
   );
 
-  const navItems = [
-    { id: "dashboard", label: "الرئيسية", icon: "dashboard" },
-    { id: "pos", label: "نقطة البيع", icon: "pos" },
-    { id: "products", label: "المنتجات والمخزون", icon: "products", badge: lowStockCount > 0 ? lowStockCount : null },
-    { id: "customers", label: "العملاء", icon: "customers" },
-    { id: "invoices", label: "الفواتير", icon: "invoices" },
-    { id: "reports", label: "التقارير", icon: "reports" },
-    { id: "settings", label: "الإعدادات", icon: "settings" },
+  const ROLE_NAV = {
+    admin:     ["dashboard","pos","products","customers","invoices","reports","settings"],
+    sales:     ["dashboard","pos","customers","invoices"],
+    warehouse: ["dashboard","products"],
+  };
+  const allowedPages = ROLE_NAV[user.role] || ["dashboard"];
+  const ALL_NAV = [
+    { id: "dashboard", label: "الرئيسية",           icon: "dashboard" },
+    { id: "pos",       label: "نقطة البيع",          icon: "pos" },
+    { id: "products",  label: "المنتجات والمخزون",   icon: "products", badge: lowStockCount > 0 ? lowStockCount : null },
+    { id: "customers", label: "العملاء",              icon: "customers" },
+    { id: "invoices",  label: "الفواتير",             icon: "invoices" },
+    { id: "reports",   label: "التقارير",             icon: "reports" },
+    { id: "settings",  label: "الإعدادات",            icon: "settings" },
   ];
-
+  const navItems = ALL_NAV.filter(n => allowedPages.includes(n.id));
   const pageTitle = navItems.find(n => n.id === page)?.label || "";
 
   const renderPage = () => {
+    if (!allowedPages.includes(page)) return (
+      <div style={{ textAlign: "center", padding: 60, color: "var(--text3)" }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
+        <div style={{ fontSize: 18, fontWeight: 700 }}>غير مصرح لك بالوصول لهذه الصفحة</div>
+      </div>
+    );
     switch (page) {
       case "dashboard": return <Dashboard products={products} customers={customers} invoices={invoices} wasteLogs={wasteLogs} />;
-      case "pos": return <POSPage products={products} setProducts={setProducts} customers={customers} invoices={invoices} setInvoices={setInvoices} showNotif={showNotif} customerTypes={dynamicCustomerTypes} wasteLogs={wasteLogs} setWasteLogs={setWasteLogs} />;
-      case "products": return <ProductsPage products={products} setProducts={setProducts} wasteLogs={wasteLogs} setWasteLogs={setWasteLogs} user={user} showNotif={showNotif} />;
-      case "customers": return <CustomersPage customers={customers} setCustomers={setCustomers} invoices={invoices} showNotif={showNotif} customerTypes={dynamicCustomerTypes} />;
-      case "invoices": return <InvoicesPage invoices={invoices} customers={customers} showNotif={showNotif} customerTypes={dynamicCustomerTypes} />;
-      case "reports": return <ReportsPage invoices={invoices} products={products} customers={customers} wasteLogs={wasteLogs} />;
-      case "settings": return <SettingsPage user={user} showNotif={showNotif} />;
+      case "pos":       return <POSPage products={products} setProducts={setProducts} customers={customers} invoices={invoices} setInvoices={setInvoices} showNotif={showNotif} customerTypes={dynamicCustomerTypes} wasteLogs={wasteLogs} setWasteLogs={setWasteLogs} user={user} reloadData={loadData} />;
+      case "products":  return <ProductsPage products={products} setProducts={setProducts} wasteLogs={wasteLogs} setWasteLogs={setWasteLogs} user={user} showNotif={showNotif} reloadData={loadData} />;
+      case "customers": return <CustomersPage customers={customers} setCustomers={setCustomers} invoices={invoices} showNotif={showNotif} customerTypes={dynamicCustomerTypes} reloadData={loadData} />;
+      case "invoices":  return <InvoicesPage invoices={invoices} customers={customers} showNotif={showNotif} customerTypes={dynamicCustomerTypes} products={products} />;
+      case "reports":   return <ReportsPage invoices={invoices} products={products} customers={customers} wasteLogs={wasteLogs} />;
+      case "settings":  return <SettingsPage user={user} showNotif={showNotif} reloadData={loadData} />;
       default: return null;
     }
   };
@@ -2470,7 +3119,7 @@ export default function App() {
               <div className="user-avatar">{user.name?.charAt(0) || "A"}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="user-name">{user.name}</div>
-                <div className="user-role">{user.role === "admin" ? "مدير النظام" : "موظف مبيعات"}</div>
+                <div className="user-role">{user.role === "admin" ? "مدير النظام" : user.role === "warehouse" ? "مدير المخزن" : "مندوب مبيعات"}</div>
               </div>
               <button className="btn-icon" title="تسجيل الخروج" onClick={() => setUser(null)}><Icon name="logout" size={16} /></button>
             </div>
