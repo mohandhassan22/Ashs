@@ -1,5 +1,5 @@
-// Supabase Edge Function (Deno) - insert_waste_protected
-// Deploy via `supabase functions deploy insert_waste_protected`
+// Supabase Edge Function (Deno) - rapid-handler
+// Deploy via `supabase functions deploy rapid-handler`
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
