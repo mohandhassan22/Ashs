@@ -142,11 +142,11 @@ const downloadInvoicePDF = async (invoice, isSharing = false) => {
           src="${window.location.origin}/logo.jpg"
           alt="Ash Pure Logo"
           style="height: 70px; width: auto; object-fit: contain;"
-          onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+          onerror="this.style.display='none';"
         />
-          <div style="display:none;">
-            <h1 style="margin: 0; font-size: 32px; font-weight: 900; color: #8B7355; letter-spacing: 2px;">ASH PURE</h1>
-            <p style="margin: 5px 0 0; font-size: 13px; color: #666666;">العناية الفائقة بالشعر</p>
+          <div>
+            <h1 style="margin: 0; font-size: 28px; font-weight: 900; color: #8B7355; letter-spacing: 1px;">ASH PURE</h1>
+            <p style="margin: 2px 0 0; font-size: 12px; color: #666666;">العناية الفائقة بالشعر</p>
           </div>
       </div>
 
@@ -1969,12 +1969,13 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
                   <td data-label="طريقة الدفع"><span className="tag">{paymentLabel(inv.paymentMethod)}</span></td>
                   <td data-label="التاريخ" style={{ color: "var(--text2)", fontSize: 12 }}>{formatDate(inv.date)}</td>
                   <td data-label="الحالة"><span className={`badge ${inv.status === "paid" ? "badge-green" : inv.status === "partial" ? "badge-gold" : "badge-red"}`}>{inv.status === "paid" ? "مدفوعة" : inv.status === "partial" ? "جزئي" : "آجل"}</span></td>
-                  <td data-label="إجراءات">
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <button className="btn-icon" onClick={() => setViewInvoice(inv)} title="عرض الفاتورة"><Icon name="eye" size={14} /></button>
-                      <button className="btn-icon" onClick={() => downloadInvoicePDF(inv)} title="تحميل PDF"><Icon name="download" size={14} /></button>
-                    </div>
-                  </td>
+	                  <td data-label="إجراءات">
+	                    <div style={{ display: "flex", gap: 4 }}>
+	                      <button className="btn-icon" onClick={() => setViewInvoice(inv)} title="عرض الفاتورة"><Icon name="eye" size={14} /></button>
+	                      <button className="btn-icon" onClick={() => downloadInvoicePDF(inv)} title="تحميل PDF"><Icon name="download" size={14} /></button>
+	                      <button className="btn-icon" onClick={() => handleShareInvoice(inv)} title="مشاركة و WhatsApp" style={{ color: "var(--gold)" }}><Icon name="link" size={14} /></button>
+	                    </div>
+	                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1998,11 +1999,11 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
               </div>
             </div>
             <div className="modal-body">
-              <div style={{ textAlign: "center", marginBottom: 20, padding: "16px 0", borderBottom: "1px solid var(--border)" }}>
-                <div className="logo-brand" style={{ fontSize: 24 }}>ASH PURE</div>
-                <div style={{ color: "var(--text3)", fontSize: 12 }}>فاتورة ضريبية</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: "var(--gold)", marginTop: 8 }}>{viewInvoice.id}</div>
-              </div>
+	              <div style={{ textAlign: "center", marginBottom: 20, padding: "16px 0", borderBottom: "1px solid var(--border)" }}>
+	                <div className="logo-brand" style={{ fontSize: 24, display: 'block' }}>ASH PURE</div>
+	                <div style={{ color: "var(--text3)", fontSize: 12 }}>فاتورة ضريبية</div>
+	                <div style={{ fontSize: 20, fontWeight: 800, color: "var(--gold)", marginTop: 8 }}>{viewInvoice.id}</div>
+	              </div>
               <div className="grid grid-2" style={{ marginBottom: 16 }}>
                 <div><div className="form-label">العميل</div><div style={{ fontWeight: 600 }}>{viewInvoice.customerName}</div></div>
                 <div><div className="form-label">التاريخ</div><div style={{ fontWeight: 600 }}>{formatDate(viewInvoice.date)}</div></div>
