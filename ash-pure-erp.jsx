@@ -1375,7 +1375,8 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
             <div className="form-group" style={{ marginBottom: 8 }}>
               <label className="form-label">العميل</label>
               <select className="form-control" value={selectedCustomer?.id || ""} onChange={e => {
-                setSelectedCustomer(customers.find(c => c.id === +e.target.value) || null);
+                const customerId = e.target.value;
+                setSelectedCustomer(customers.find(c => c.id === customerId) || null);
                 setCart(prev => prev.map(item => ({ ...item, isCustomPrice: false })));
               }}>
                 <option value="">عميل نقدي / بدون حساب</option>
