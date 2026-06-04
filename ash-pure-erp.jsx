@@ -139,7 +139,7 @@ const downloadInvoicePDF = async (invoice, isSharing = false) => {
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #8B7355; padding-bottom: 20px; margin-bottom: 30px;">
       <div style="display: flex; align-items: center; gap: 14px;">
         <img
-          src="${window.location.origin}/ashh.png"
+          src="${window.location.origin}/logo.jpg"
           alt="Ash Pure Logo"
           style="height: 70px; width: auto; object-fit: contain;"
           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
@@ -1217,7 +1217,12 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
       showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
       
       const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF) صالحة للتحميل لمدة ساعة:\n${directDownloadUrl}\nشكراً لك! ✨`;
-      const whatsappUrl = `https://wa.me/${invoice.customerPhone || ""}?text=${encodeURIComponent(message)}`;
+      const phone = invoice.customerPhone?.replace(/\D/g, '') || "";
+      if (!phone) {
+        showNotif("رقم هاتف العميل غير متوفر. يرجى إضافة رقم الهاتف للعميل أولاً.", "error");
+        return;
+      }
+      const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, "_blank");
     } catch (e) {
       console.error(e);
@@ -1900,7 +1905,12 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
       showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
       
       const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF) صالحة للتحميل لمدة ساعة:\n${directDownloadUrl}\nشكراً لك! ✨`;
-      const whatsappUrl = `https://wa.me/${invoice.customerPhone || ""}?text=${encodeURIComponent(message)}`;
+      const phone = invoice.customerPhone?.replace(/\D/g, '') || "";
+      if (!phone) {
+        showNotif("رقم هاتف العميل غير متوفر. يرجى إضافة رقم الهاتف للعميل أولاً.", "error");
+        return;
+      }
+      const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, "_blank");
     } catch (e) {
       console.error(e);
