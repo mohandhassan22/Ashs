@@ -11,9 +11,17 @@ export default function DashboardWasteSummary() {
   async function load() {
     const { data } = await listWasteLogs();
     if (!data) return;
-    const gifts = data.filter(d => d.type === 'gift').reduce((s, r) => s + parseFloat(r.qty || 0), 0);
-    const waste = data.filter(d => d.type === 'waste').reduce((s, r) => s + parseFloat(r.qty || 0), 0);
+
+    const gifts = data
+      .filter(d => d.type === 'gift')
+      .reduce((s, r) => s + parseFloat(r.qty || 0), 0);
+
+    const waste = data
+      .filter(d => d.type === 'waste')
+      .reduce((s, r) => s + parseFloat(r.qty || 0), 0);
+
     const lossValue = data.reduce((s, r) => s + parseFloat(r.cost || 0), 0);
+
     setSummary({ gifts, waste, lossValue });
   }
 
@@ -25,8 +33,11 @@ export default function DashboardWasteSummary() {
       </div>
       <div style={{ padding: 12, borderRadius: 8, background: '#fff' }}>
         <div>إجمالي الهوالك والخسائر</div>
-        <div style={{ fontSize: 20, fontWeight: 700 }}>{summary.waste} ({summary.lossValue} SAR)</div>
+        <div style={{ fontSize: 20, fontWeight: 700 }}>
+          {summary.waste} ({summary.lossValue} SAR)
+        </div>
       </div>
     </div>
   );
 }
+
