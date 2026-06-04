@@ -144,10 +144,10 @@ const downloadInvoicePDF = async (invoice, isSharing = false) => {
           style="height: 70px; width: auto; object-fit: contain;"
           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
         />
-        <div style="display:none;">
-          <h1 style="margin: 0; font-size: 32px; font-weight: 900; color: #8B7355; letter-spacing: 2px;">ASH PURE</h1>
-          <p style="margin: 5px 0 0; font-size: 13px; color: #666666;">العناية الفائقة بالشعر والبشرة</p>
-        </div>
+          <div style="display:none;">
+            <h1 style="margin: 0; font-size: 32px; font-weight: 900; color: #8B7355; letter-spacing: 2px;">ASH PURE</h1>
+            <p style="margin: 5px 0 0; font-size: 13px; color: #666666;">العناية الفائقة بالشعر</p>
+          </div>
       </div>
 
       <div style="text-align: left;">
@@ -1379,7 +1379,7 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
                 setCart(prev => prev.map(item => ({ ...item, isCustomPrice: false })));
               }}>
                 <option value="">عميل نقدي / بدون حساب</option>
-                {customers.filter(c => c.type === customerType).map(c => (
+                {customers.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
