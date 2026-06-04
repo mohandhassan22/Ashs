@@ -1199,24 +1199,26 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
       showNotif("جاري توليد ملف الـ PDF والرفع للغيمة... ⏳", "info");
       const pdfBlob = await downloadInvoicePDF(invoice, true);
       
-      const formData = new FormData();
-      formData.append("file", pdfBlob, `invoice-${invoice.id}.pdf`);
+      const fileName = `invoices/invoice-${invoice.id}-${Date.now()}.pdf`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('public')
+        .upload(fileName, pdfBlob, {
+          contentType: 'application/pdf',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('public')
+        .getPublicUrl(fileName);
       
-      const res = await fetch("https://tmpfiles.org/api/v1/upload", {
-        method: "POST",
-        body: formData
-      });
-      
-      if (!res.ok) throw new Error("فشل رفع الملف");
-      const data = await res.json();
-      
-      const shareUrl = data.data.url;
-      const directDownloadUrl = shareUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
+      const directDownloadUrl = publicUrl;
       
       await navigator.clipboard.writeText(directDownloadUrl);
       showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
       
-      const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF) صالحة للتحميل لمدة ساعة:\n${directDownloadUrl}\nشكراً لك! ✨`;
+      const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF):\n${directDownloadUrl}\nشكراً لك! ✨`;
       const phone = invoice.customerPhone?.replace(/\D/g, '') || "";
       if (!phone) {
         showNotif("رقم هاتف العميل غير متوفر. يرجى إضافة رقم الهاتف للعميل أولاً.", "error");
@@ -1887,24 +1889,26 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
       showNotif("جاري توليد ملف الـ PDF والرفع للغيمة... ⏳", "info");
       const pdfBlob = await downloadInvoicePDF(invoice, true);
       
-      const formData = new FormData();
-      formData.append("file", pdfBlob, `invoice-${invoice.id}.pdf`);
+      const fileName = `invoices/invoice-${invoice.id}-${Date.now()}.pdf`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('public')
+        .upload(fileName, pdfBlob, {
+          contentType: 'application/pdf',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('public')
+        .getPublicUrl(fileName);
       
-      const res = await fetch("https://tmpfiles.org/api/v1/upload", {
-        method: "POST",
-        body: formData
-      });
-      
-      if (!res.ok) throw new Error("فشل رفع الملف");
-      const data = await res.json();
-      
-      const shareUrl = data.data.url;
-      const directDownloadUrl = shareUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
+      const directDownloadUrl = publicUrl;
       
       await navigator.clipboard.writeText(directDownloadUrl);
       showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
       
-      const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF) صالحة للتحميل لمدة ساعة:\n${directDownloadUrl}\nشكراً لك! ✨`;
+      const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF):\n${directDownloadUrl}\nشكراً لك! ✨`;
       const phone = invoice.customerPhone?.replace(/\D/g, '') || "";
       if (!phone) {
         showNotif("رقم هاتف العميل غير متوفر. يرجى إضافة رقم الهاتف للعميل أولاً.", "error");
