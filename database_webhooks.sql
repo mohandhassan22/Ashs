@@ -30,12 +30,13 @@ BEGIN
 
   -- Perform asynchronous HTTP POST request to the Edge Function
   -- Note: We use the local/remote project URL. In production, replace with your actual API endpoint if needed.
-  -- Example: https://crjdkkiritgfkampxbjw.supabase.co/functions/v1/sync-google-sheets
+  -- IMPORTANT: Replace the URL with your actual project's Edge Function URL
+  -- Example: https://[YOUR-PROJECT-ID].supabase.co/functions/v1/sync-google-sheets
   PERFORM net.http_post(
-    url := 'https://crjdkkiritgfkampxbjw.supabase.co/functions/v1/sync-google-sheets',
+    url := 'https://[REPLACE-WITH-YOUR-PROJECT-ID].supabase.co/functions/v1/sync-google-sheets',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'apikey', 'your-anon-key-here' -- Replace with your actual VITE_SUPABASE_ANON_KEY
+      'apikey', '[REPLACE-WITH-YOUR-ANON-KEY]' -- Replace with your actual VITE_SUPABASE_ANON_KEY
     ),
     body := payload::text
   );

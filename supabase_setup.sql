@@ -90,7 +90,7 @@ ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS public.invoice_items (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   invoice_id text NOT NULL REFERENCES public.invoices(id) ON DELETE CASCADE,
-  product_id bigint NOT NULL REFERENCES public.products(id) ON DELETE RESTRICT,
+  product_id bigint REFERENCES public.products(id) ON DELETE SET NULL,
   name text,
   qty numeric NOT NULL CHECK (qty > 0),
   price numeric NOT NULL,
@@ -152,6 +152,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 DROP POLICY IF EXISTS "Allow authenticated to view profiles" ON public.profiles;
 CREATE POLICY "Allow authenticated to view profiles" ON public.profiles
   FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Allow users to update their own profile" ON public.profiles;
+CREATE POLICY "Allow users to update their own profile" ON public.profiles
+  FOR UPDATE TO authenticated USING (auth.uid() = id);
 
 DROP POLICY IF EXISTS "Allow admin to manage profiles" ON public.profiles;
 CREATE POLICY "Allow admin to manage profiles" ON public.profiles
@@ -260,6 +264,13 @@ BEGIN
         'مسجل تلقائياً من الفاتورة رقم: ' || NEW.invoice_id,
         (SELECT created_by FROM public.invoices WHERE id = NEW.invoice_id)
       );
+    END IF;
+    
+    -- Update customer total purchases and balance if it's a sale
+    IF NEW.movement_type = 'sale' THEN
+      UPDATE public.customers
+      SET total_purchases = total_purchases + NEW.total
+      WHERE id = (SELECT customer_id FROM public.invoices WHERE id = NEW.invoice_id);
     END IF;
     
   ELSIF TG_OP = 'UPDATE' THEN

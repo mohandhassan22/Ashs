@@ -566,8 +566,12 @@ function LoginPage({ onLogin }) {
       // Fetch profile for role and name
       const { data: profile, error: profErr } = await supabase
         .from("profiles").select("name, role").eq("id", data.user.id).single();
-      if (profErr || !profile) { setError("لم يتم العثور على ملف المستخدم. تأكد من تشغيل SQL script."); setLoading(false); return; }
-      onLogin({ ...data.user, role: profile.role, name: profile.name });
+      if (profErr || !profile) { 
+        // Fallback to default role if profile is missing (for safety)
+        onLogin({ ...data.user, role: 'sales', name: data.user.email.split('@')[0] });
+      } else {
+        onLogin({ ...data.user, role: profile.role, name: profile.name });
+      }
     } catch (ex) {
       setError("حدث خطأ غير متوقع. تأكد من اتصال الإنترنت.");
     }
@@ -1244,8 +1248,8 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
         return prev.map(i => i.productId === product.id ? { ...i, qty: i.qty + 1, total: (i.qty + 1) * i.price } : i);
       }
       // If customer has a special price for this product, use it
-      const special = selectedCustomer ? getSpecialPriceFromMock(selectedCustomer.id, product.id) : null;
-      const basePrice = special != null ? special : (product[priceKey] || product.clientPrice);
+      const special = selectedCustomer ? (product.specialPrice || getSpecialPriceFromMock(selectedCustomer.id, product.id)) : null;
+      const basePrice = special != null ? special : (product[priceKey] || product.clientPrice || 0);
       return [...prev, { productId: product.id, name: product.name, qty: 1, price: basePrice, total: basePrice, maxQty: product.qty, movement_type: 'sale' }];
     });
   };
@@ -2955,9 +2959,10 @@ export default function App() {
   const mapProduct = r => ({
     id: r.id, name: r.name, sku: r.sku || "", barcode: r.barcode || "",
     category: r.category || "", qty: r.stock ?? 0, buyPrice: r.cost ?? 0,
-    sellPrice: r.price_retail ?? 0, traderPrice: r.traderPrice ?? r.price_dealer ?? 0,
-    specialistPrice: r.specialistPrice ?? r.price_specialist ?? 0,
-    clientPrice: r.clientPrice ?? r.price_retail ?? 0,
+    sellPrice: r.price_retail || r.clientPrice || 0, 
+    traderPrice: r.traderPrice || r.price_dealer || 0,
+    specialistPrice: r.specialistPrice || r.price_specialist || 0,
+    clientPrice: r.clientPrice || r.price_retail || 0,
     supplier: r.supplier || "", expiry: r.expiry || "", minQty: r.min_qty ?? 10,
     notes: r.notes || "", image: r.image || null,
   });
@@ -2995,7 +3000,10 @@ export default function App() {
       ]);
       if (pR.data)   setProducts(pR.data.map(mapProduct));
       if (cR.data)   setCustomers(cR.data.map(mapCustomer));
-      if (iR.data && itmR.data) setInvoices(iR.data.map(r => mapInvoice(r, itmR.data)));
+      if (iR.data) {
+        const invoicesData = iR.data.map(r => mapInvoice(r, itmR.data || []));
+        setInvoices(invoicesData);
+      }
       if (wR.data)   setWasteLogs(wR.data.map(mapWasteLog));
     } catch (e) { console.error("Supabase load error:", e); }
     setDataLoaded(true);
