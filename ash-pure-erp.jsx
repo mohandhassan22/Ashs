@@ -2961,7 +2961,7 @@ function Notifications({ notifs }) {
 
 // ==================== MAIN APP ====================
 export default function App() {
-  const [user, setUser] = useState({ id: 'guest', name: 'زائر', role: 'admin', email: 'guest@ashpure.com' });
+  const [user, setUser] = useState(null);
   const [page, setPage] = useState("dashboard");
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -3005,7 +3005,7 @@ export default function App() {
   });
 
   const loadData = useCallback(async () => {
-    // if (!user) return;
+    if (!user) return;
     try {
       const [pR, cR, iR, itmR, wR] = await Promise.all([
         supabase.from("products").select("*").order("name"),
@@ -3045,21 +3045,19 @@ export default function App() {
   const lowStockCount = products.filter(p => p.qty <= p.minQty).length;
   const debtCount = customers.filter(c => c.balance > 0).length;
 
-  // Removed login check - allow direct access
-  // if (!user) return (
-  //   <>
-  //     <style>{styles}</style>
-  //     <LoginPage onLogin={setUser} />
-  //   </>
-  // );
+  if (!user) return (
+    <>
+      <style>{styles}</style>
+      <LoginPage onLogin={setUser} />
+    </>
+  );
 
-  // All users have full admin access
-  const ROLE_NAV = {
-    admin:     ["dashboard","pos","products","customers","invoices","reports","settings"],
-    sales:     ["dashboard","pos","products","customers","invoices","reports","settings"],
-    warehouse: ["dashboard","pos","products","customers","invoices","reports","settings"],
-  };
+  // Force admin role for all users to see everything
   const allowedPages = ["dashboard","pos","products","customers","invoices","reports","settings"];
+  // Override user role to admin if they are logged in
+  if (user && user.role !== 'admin') {
+    user.role = 'admin';
+  }
   // All pages available to all users
   const ALL_NAV = [
     { id: "dashboard", label: "",           icon: "dashboard" },
@@ -3148,7 +3146,7 @@ export default function App() {
                 <div className="user-name">{user.name}</div>
                 <div className="user-role">{user.role === "admin" ? "مدير النظام" : user.role === "warehouse" ? "مدير المخزن" : "مندوب مبيعات"}</div>
               </div>
-              {/* Logout button removed - no login required */}
+              <button className="btn-icon" title="تسجيل الخروج" onClick={() => setUser(null)}><Icon name="logout" size={16} /></button>
             </div>
           </div>
         </div>
