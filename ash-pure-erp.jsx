@@ -2961,7 +2961,7 @@ function Notifications({ notifs }) {
 
 // ==================== MAIN APP ====================
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState({ id: 'guest', name: 'زائر', role: 'admin', email: 'guest@ashpure.com' });
   const [page, setPage] = useState("dashboard");
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -3005,7 +3005,7 @@ export default function App() {
   });
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    // if (!user) return;
     try {
       const [pR, cR, iR, itmR, wR] = await Promise.all([
         supabase.from("products").select("*").order("name"),
@@ -3045,27 +3045,30 @@ export default function App() {
   const lowStockCount = products.filter(p => p.qty <= p.minQty).length;
   const debtCount = customers.filter(c => c.balance > 0).length;
 
-  if (!user) return (
-    <>
-      <style>{styles}</style>
-      <LoginPage onLogin={setUser} />
-    </>
-  );
+  // Removed login check - allow direct access
+  // if (!user) return (
+  //   <>
+  //     <style>{styles}</style>
+  //     <LoginPage onLogin={setUser} />
+  //   </>
+  // );
 
+  // All users have full admin access
   const ROLE_NAV = {
     admin:     ["dashboard","pos","products","customers","invoices","reports","settings"],
-    sales:     ["dashboard","pos","customers","invoices"],
-    warehouse: ["dashboard","products"],
+    sales:     ["dashboard","pos","products","customers","invoices","reports","settings"],
+    warehouse: ["dashboard","pos","products","customers","invoices","reports","settings"],
   };
-  const allowedPages = ROLE_NAV[user.role] || ["dashboard"];
+  const allowedPages = ["dashboard","pos","products","customers","invoices","reports","settings"];
+  // All pages available to all users
   const ALL_NAV = [
-    { id: "dashboard", label: "الرئيسية",           icon: "dashboard" },
-    { id: "pos",       label: "نقطة البيع",          icon: "pos" },
-    { id: "products",  label: "المنتجات والمخزون",   icon: "products", badge: lowStockCount > 0 ? lowStockCount : null },
-    { id: "customers", label: "العملاء",              icon: "customers" },
-    { id: "invoices",  label: "الفواتير",             icon: "invoices" },
-    { id: "reports",   label: "التقارير",             icon: "reports" },
-    { id: "settings",  label: "الإعدادات",            icon: "settings" },
+    { id: "dashboard", label: "",           icon: "dashboard" },
+    { id: "pos",       label: "",          icon: "pos" },
+    { id: "products",  label: "",   icon: "products", badge: lowStockCount > 0 ? lowStockCount : null },
+    { id: "customers", label: "",              icon: "customers" },
+    { id: "invoices",  label: "",             icon: "invoices" },
+    { id: "reports",   label: "",             icon: "reports" },
+    { id: "settings",  label: "",            icon: "settings" },
   ];
   const navItems = ALL_NAV.filter(n => allowedPages.includes(n.id));
   const pageTitle = navItems.find(n => n.id === page)?.label || "";
@@ -3145,7 +3148,7 @@ export default function App() {
                 <div className="user-name">{user.name}</div>
                 <div className="user-role">{user.role === "admin" ? "مدير النظام" : user.role === "warehouse" ? "مدير المخزن" : "مندوب مبيعات"}</div>
               </div>
-              <button className="btn-icon" title="تسجيل الخروج" onClick={() => setUser(null)}><Icon name="logout" size={16} /></button>
+              {/* Logout button removed - no login required */}
             </div>
           </div>
         </div>
@@ -3156,7 +3159,7 @@ export default function App() {
           <header className="header">
             <div className="header-left">
               <button className="menu-toggle" onClick={() => setSidebarOpen(true)}><Icon name="menu" size={24} /></button>
-              <span className="header-title">{pageTitle}</span>
+              <span className="header-title"></span>
             </div>
             <div className="header-actions">
               <div className="search-bar">
