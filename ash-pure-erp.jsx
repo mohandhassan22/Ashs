@@ -1197,38 +1197,66 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
     setIsSharing(true);
     try {
       showNotif("جاري توليد ملف الـ PDF والرفع للغيمة... ⏳", "info");
-      const pdfBlob = await downloadInvoicePDF(invoice, true);
-      
-      const fileName = `invoices/invoice-${invoice.id}-${Date.now()}.pdf`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('public')
-        .upload(fileName, pdfBlob, {
-          contentType: 'application/pdf',
-          upsert: true
-        });
 
-      if (uploadError) throw uploadError;
+      // توليد PDF
+      let pdfBlob;
+      try {
+        pdfBlob = await downloadInvoicePDF(invoice, true);
+      } catch (pdfErr) {
+        console.error("PDF generation error:", pdfErr);
+        showNotif("فشل توليد ملف PDF - تحقق من بيانات الفاتورة", "error");
+        return;
+      }
 
+      const BUCKET = 'invoices';
+      const fileName = `invoice-${invoice.id}-${Date.now()}.pdf`;
+
+      // محاولة الرفع على bucket 'invoices' أولاً، ثم 'public' كبديل
+      let uploadError = null;
+      let usedBucket = BUCKET;
+
+      const { error: err1 } = await supabase.storage
+        .from(BUCKET)
+        .upload(fileName, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+      if (err1) {
+        console.warn("Upload to 'invoices' bucket failed, trying 'public':", err1.message);
+        usedBucket = 'public';
+        const { error: err2 } = await supabase.storage
+          .from('public')
+          .upload(`invoices/${fileName}`, pdfBlob, { contentType: 'application/pdf', upsert: true });
+        uploadError = err2;
+        if (err2) {
+          console.error("Upload error details:", err2);
+          showNotif(`فشل رفع الفاتورة: ${err2.message || "تحقق من إعدادات Supabase Storage"}`, "error");
+          return;
+        }
+      }
+
+      const filePath = usedBucket === 'public' ? `invoices/${fileName}` : fileName;
       const { data: { publicUrl } } = supabase.storage
-        .from('public')
-        .getPublicUrl(fileName);
-      
-      const directDownloadUrl = publicUrl;
-      
-      await navigator.clipboard.writeText(directDownloadUrl);
-      showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
-      
-      const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF):\n${directDownloadUrl}\nشكراً لك! ✨`;
+        .from(usedBucket)
+        .getPublicUrl(filePath);
+
+      // نسخ الرابط
+      try {
+        await navigator.clipboard.writeText(publicUrl);
+        showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
+      } catch {
+        showNotif("تم رفع الفاتورة بنجاح ✅", "success");
+      }
+
       const phone = invoice.customerPhone?.replace(/\D/g, '') || "";
       if (!phone) {
         showNotif("رقم هاتف العميل غير متوفر. يرجى إضافة رقم الهاتف للعميل أولاً.", "error");
         return;
       }
+      const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF):\n${publicUrl}\nشكراً لك! ✨`;
       const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, "_blank");
     } catch (e) {
-      console.error(e);
-      showNotif("فشل توليد أو رفع رابط الفاتورة", "error");
+      console.error("handleShareInvoice unexpected error:", e);
+      showNotif(`فشل مشاركة الفاتورة: ${e?.message || "خطأ غير متوقع"}`, "error");
     } finally {
       setIsSharing(false);
     }
@@ -1887,38 +1915,65 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
     setIsSharing(true);
     try {
       showNotif("جاري توليد ملف الـ PDF والرفع للغيمة... ⏳", "info");
-      const pdfBlob = await downloadInvoicePDF(invoice, true);
-      
-      const fileName = `invoices/invoice-${invoice.id}-${Date.now()}.pdf`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('public')
-        .upload(fileName, pdfBlob, {
-          contentType: 'application/pdf',
-          upsert: true
-        });
 
-      if (uploadError) throw uploadError;
+      // توليد PDF
+      let pdfBlob;
+      try {
+        pdfBlob = await downloadInvoicePDF(invoice, true);
+      } catch (pdfErr) {
+        console.error("PDF generation error:", pdfErr);
+        showNotif("فشل توليد ملف PDF - تحقق من بيانات الفاتورة", "error");
+        return;
+      }
 
+      const BUCKET = 'invoices';
+      const fileName = `invoice-${invoice.id}-${Date.now()}.pdf`;
+
+      // محاولة الرفع على bucket 'invoices' أولاً، ثم 'public' كبديل
+      let usedBucket = BUCKET;
+
+      const { error: err1 } = await supabase.storage
+        .from(BUCKET)
+        .upload(fileName, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+      if (err1) {
+        console.warn("Upload to 'invoices' bucket failed, trying 'public':", err1.message);
+        usedBucket = 'public';
+        const { error: err2 } = await supabase.storage
+          .from('public')
+          .upload(`invoices/${fileName}`, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+        if (err2) {
+          console.error("Upload error details:", err2);
+          showNotif(`فشل رفع الفاتورة: ${err2.message || "تحقق من إعدادات Supabase Storage وتأكد من وجود البكت"}`, "error");
+          return;
+        }
+      }
+
+      const filePath = usedBucket === 'public' ? `invoices/${fileName}` : fileName;
       const { data: { publicUrl } } = supabase.storage
-        .from('public')
-        .getPublicUrl(fileName);
-      
-      const directDownloadUrl = publicUrl;
-      
-      await navigator.clipboard.writeText(directDownloadUrl);
-      showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
-      
-      const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF):\n${directDownloadUrl}\nشكراً لك! ✨`;
+        .from(usedBucket)
+        .getPublicUrl(filePath);
+
+      // نسخ الرابط
+      try {
+        await navigator.clipboard.writeText(publicUrl);
+        showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
+      } catch {
+        showNotif("تم رفع الفاتورة بنجاح ✅", "success");
+      }
+
       const phone = invoice.customerPhone?.replace(/\D/g, '') || "";
       if (!phone) {
         showNotif("رقم هاتف العميل غير متوفر. يرجى إضافة رقم الهاتف للعميل أولاً.", "error");
         return;
       }
+      const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF):\n${publicUrl}\nشكراً لك! ✨`;
       const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, "_blank");
     } catch (e) {
-      console.error(e);
-      showNotif("فشل رفع أو مشاركة الفاتورة", "error");
+      console.error("handleShareInvoice unexpected error:", e);
+      showNotif(`فشل مشاركة الفاتورة: ${e?.message || "خطأ غير متوقع"}`, "error");
     } finally {
       setIsSharing(false);
     }
