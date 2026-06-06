@@ -1981,12 +1981,15 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
                   <td data-label="طريقة الدفع"><span className="tag">{paymentLabel(inv.paymentMethod)}</span></td>
                   <td data-label="التاريخ" style={{ color: "var(--text2)", fontSize: 12 }}>{formatDate(inv.date)}</td>
                   <td data-label="الحالة"><span className={`badge ${inv.status === "paid" ? "badge-green" : inv.status === "partial" ? "badge-gold" : "badge-red"}`}>{inv.status === "paid" ? "مدفوعة" : inv.status === "partial" ? "جزئي" : "آجل"}</span></td>
-                  <td data-label="إجراءات">
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <button className="btn-icon" onClick={() => setViewInvoice(inv)} title="عرض الفاتورة"><Icon name="eye" size={14} /></button>
-                      <button className="btn-icon" onClick={() => downloadInvoicePDF(inv)} title="تحميل PDF"><Icon name="download" size={14} /></button>
-                    </div>
-                  </td>
+	                  <td data-label="إجراءات">
+	                    <div style={{ display: "flex", gap: 4 }}>
+	                      <button className="btn-icon" onClick={() => setViewInvoice(inv)} title="عرض الفاتورة"><Icon name="eye" size={14} /></button>
+	                      <button className="btn-icon" onClick={() => downloadInvoicePDF(inv)} title="تحميل PDF"><Icon name="download" size={14} /></button>
+	                      <button className="btn-icon" onClick={() => handleShareInvoice(inv)} disabled={isSharing} title="مشاركة و WhatsApp" style={{ color: "var(--gold)" }}>
+	                        <Icon name="link" size={14} />
+	                      </button>
+	                    </div>
+	                  </td>
                 </tr>
               ))}
             </tbody>
