@@ -1270,31 +1270,31 @@ ${itemsList || "   -"}
       if (shareUrl) {
         try { await navigator.clipboard.writeText(shareUrl); } catch {}
         showNotif("تم توليد الرابط ✅ جاري فتح واتساب...", "success");
-        message = `السلام عليكم ورحمة الله 👋
-عزيزنا/عزيزتنا *${invoice.customerName || "عميلنا الكريم"}*،
+        message = `السلام عليكم ورحمة الله وبركاته 👋
+الأستاذ / *${invoice.customerName || "عميلنا الكريم"}*
 
-نشكركم على تعاملكم مع شركة *ASH PURE* 🌟
-نرسل إليكم فاتورتكم الرقمية:
+نشكر حضرتك على تعاملك مع *شركة ASH PURE* 🌟
+يسعدنا إرسال فاتورتك رقم *${invoice.id}*
 
 ${invoiceDetails}
 
-📄 *رابط تحميل الفاتورة (PDF):*
+📎 *رابط تحميل الفاتورة:*
 ${shareUrl}
 
-شكراً لثقتكم بنا 🙏
-*شركة ASH PURE*`;
+نتطلع لاستمرار تعاملك معنا 🤝
+_شركة ASH PURE_`;
       } else {
         showNotif("تم إرسال تفاصيل الفاتورة عبر واتساب ✅", "success");
-        message = `السلام عليكم ورحمة الله 👋
-عزيزنا/عزيزتنا *${invoice.customerName || "عميلنا الكريم"}*،
+        message = `السلام عليكم ورحمة الله وبركاته 👋
+الأستاذ / *${invoice.customerName || "عميلنا الكريم"}*
 
-نشكركم على تعاملكم مع شركة *ASH PURE* 🌟
-نرسل إليكم فاتورتكم الرقمية:
+نشكر حضرتك على تعاملك مع *شركة ASH PURE* 🌟
+يسعدنا إرسال فاتورتك رقم *${invoice.id}*
 
 ${invoiceDetails}
 
-شكراً لثقتكم بنا 🙏
-*شركة ASH PURE*`;
+نتطلع لاستمرار تعاملك معنا 🤝
+_شركة ASH PURE_`;
       }
 
       const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
@@ -2035,31 +2035,31 @@ ${itemsList || "   -"}
       if (shareUrl) {
         try { await navigator.clipboard.writeText(shareUrl); } catch {}
         showNotif("تم توليد الرابط ✅ جاري فتح واتساب...", "success");
-        message = `السلام عليكم ورحمة الله 👋
-عزيزنا/عزيزتنا *${invoice.customerName || "عميلنا الكريم"}*،
+        message = `السلام عليكم ورحمة الله وبركاته 👋
+الأستاذ / *${invoice.customerName || "عميلنا الكريم"}*
 
-نشكركم على تعاملكم مع شركة *ASH PURE* 🌟
-نرسل إليكم فاتورتكم الرقمية:
+نشكر حضرتك على تعاملك مع *شركة ASH PURE* 🌟
+يسعدنا إرسال فاتورتك رقم *${invoice.id}*
 
 ${invoiceDetails}
 
-📄 *رابط تحميل الفاتورة (PDF):*
+📎 *رابط تحميل الفاتورة:*
 ${shareUrl}
 
-شكراً لثقتكم بنا 🙏
-*شركة ASH PURE*`;
+نتطلع لاستمرار تعاملك معنا 🤝
+_شركة ASH PURE_`;
       } else {
         showNotif("تم إرسال تفاصيل الفاتورة عبر واتساب ✅", "success");
-        message = `السلام عليكم ورحمة الله 👋
-عزيزنا/عزيزتنا *${invoice.customerName || "عميلنا الكريم"}*،
+        message = `السلام عليكم ورحمة الله وبركاته 👋
+الأستاذ / *${invoice.customerName || "عميلنا الكريم"}*
 
-نشكركم على تعاملكم مع شركة *ASH PURE* 🌟
-نرسل إليكم فاتورتكم الرقمية:
+نشكر حضرتك على تعاملك مع *شركة ASH PURE* 🌟
+يسعدنا إرسال فاتورتك رقم *${invoice.id}*
 
 ${invoiceDetails}
 
-شكراً لثقتكم بنا 🙏
-*شركة ASH PURE*`;
+نتطلع لاستمرار تعاملك معنا 🤝
+_شركة ASH PURE_`;
       }
 
       const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
