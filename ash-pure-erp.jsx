@@ -1297,14 +1297,8 @@ ${invoiceDetails}
 _شركة ASH PURE_`;
       }
 
-      const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-      const a = document.createElement("a");
-      a.href = whatsappUrl;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      await navigator.clipboard.writeText(message);
+      showNotif("✅ تم نسخ الرسالة! افتح واتساب والصقها", "success");
 
     } catch (e) {
       console.error("handleShareInvoice error:", e);
@@ -2068,14 +2062,8 @@ ${invoiceDetails}
 _شركة ASH PURE_`;
       }
 
-      const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-      const a = document.createElement("a");
-      a.href = whatsappUrl;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      await navigator.clipboard.writeText(message);
+      showNotif("✅ تم نسخ الرسالة! افتح واتساب والصقها", "success");
 
     } catch (e) {
       console.error("handleShareInvoice error:", e);
