@@ -1233,7 +1233,22 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
         return;
       }
 
-      const invoiceDetails = `🧾 *فاتورة ASH PURE*\n━━━━━━━━━━━━━━━━\n👤 *العميل:* ${invoice.customerName || "عميلنا العزيز"}\n🔢 *رقم الفاتورة:* ${invoice.id}\n📅 *التاريخ:* ${invoice.date || ""}\n💰 *المبلغ الإجمالي:* ${invoice.total} ج.م\n✅ *المدفوع:* ${invoice.paid ?? invoice.total} ج.م\n⏳ *المتبقي:* ${invoice.remaining ?? 0} ج.م\n💳 *طريقة الدفع:* ${invoice.paymentMethod || "كاش"}\n📦 *الحالة:* ${invoice.status === "paid" ? "مدفوعة ✅" : "آجل ⏳"}\n━━━━━━━━━━━━━━━━`;
+      const itemsList = (invoice.items || []).map((it, i) => `   ${i+1}. ${it.name} × ${it.qty} = ${it.total ?? (it.price * it.qty)} ج.م`).join("\n");
+      const invoiceDetails = `🧾 *فاتورة ASH PURE*
+━━━━━━━━━━━━━━━━
+👤 *العميل:* ${invoice.customerName || "عميلنا العزيز"}
+🔢 *رقم الفاتورة:* ${invoice.id}
+📅 *التاريخ:* ${invoice.date || ""}
+━━━━━━━━━━━━━━━━
+🛒 *المنتجات:*
+${itemsList || "   -"}
+━━━━━━━━━━━━━━━━
+💰 *الإجمالي:* ${invoice.total} ج.م
+✅ *المدفوع:* ${invoice.paid ?? invoice.total} ج.م
+⏳ *المتبقي:* ${invoice.remaining ?? 0} ج.م
+💳 *طريقة الدفع:* ${invoice.paymentMethod || "كاش"}
+📦 *الحالة:* ${invoice.status === "paid" ? "مدفوعة ✅" : "آجل ⏳"}
+━━━━━━━━━━━━━━━━`;
 
       let message;
       if (shareUrl) {
@@ -1945,7 +1960,22 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
         return;
       }
 
-      const invoiceDetails = `🧾 *فاتورة ASH PURE*\n━━━━━━━━━━━━━━━━\n👤 *العميل:* ${invoice.customerName || "عميلنا العزيز"}\n🔢 *رقم الفاتورة:* ${invoice.id}\n📅 *التاريخ:* ${invoice.date || ""}\n💰 *المبلغ الإجمالي:* ${invoice.total} ج.م\n✅ *المدفوع:* ${invoice.paid ?? invoice.total} ج.م\n⏳ *المتبقي:* ${invoice.remaining ?? 0} ج.م\n💳 *طريقة الدفع:* ${invoice.paymentMethod || "كاش"}\n📦 *الحالة:* ${invoice.status === "paid" ? "مدفوعة ✅" : "آجل ⏳"}\n━━━━━━━━━━━━━━━━`;
+      const itemsList = (invoice.items || []).map((it, i) => `   ${i+1}. ${it.name} × ${it.qty} = ${it.total ?? (it.price * it.qty)} ج.م`).join("\n");
+      const invoiceDetails = `🧾 *فاتورة ASH PURE*
+━━━━━━━━━━━━━━━━
+👤 *العميل:* ${invoice.customerName || "عميلنا العزيز"}
+🔢 *رقم الفاتورة:* ${invoice.id}
+📅 *التاريخ:* ${invoice.date || ""}
+━━━━━━━━━━━━━━━━
+🛒 *المنتجات:*
+${itemsList || "   -"}
+━━━━━━━━━━━━━━━━
+💰 *الإجمالي:* ${invoice.total} ج.م
+✅ *المدفوع:* ${invoice.paid ?? invoice.total} ج.م
+⏳ *المتبقي:* ${invoice.remaining ?? 0} ج.م
+💳 *طريقة الدفع:* ${invoice.paymentMethod || "كاش"}
+📦 *الحالة:* ${invoice.status === "paid" ? "مدفوعة ✅" : "آجل ⏳"}
+━━━━━━━━━━━━━━━━`;
 
       let message;
       if (shareUrl) {
