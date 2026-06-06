@@ -1243,7 +1243,7 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
         }
       }
 
-      const phone = (invoice.customerPhone || "").replace(/\D/g, "");
+      const phone = (invoice.customerPhone || invoice.customer_phone || "").replace(/\D/g, "");
       if (!phone) {
         showNotif("رقم هاتف العميل غير متوفر. يرجى إضافة رقم الهاتف للعميل أولاً.", "error");
         return;
@@ -2014,7 +2014,7 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
         }
       }
 
-      const phone = (invoice.customerPhone || "").replace(/\D/g, "");
+      const phone = (invoice.customerPhone || invoice.customer_phone || "").replace(/\D/g, "");
       if (!phone) {
         showNotif("رقم هاتف العميل غير متوفر. يرجى إضافة رقم الهاتف للعميل أولاً.", "error");
         return;
