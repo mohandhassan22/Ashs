@@ -1196,50 +1196,61 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
   const handleShareInvoice = async (invoice) => {
     setIsSharing(true);
     try {
-      showNotif("جاري توليد ملف الـ PDF والرفع للغيمة... ⏳", "info");
+      showNotif("جاري توليد ملف الـ PDF... ⏳", "info");
       const pdfBlob = await downloadInvoicePDF(invoice, true);
-      
-      const formData = new FormData();
-      formData.append("file", pdfBlob, `invoice-${invoice.id}.pdf`);
-      
-      // Upload to Supabase Storage (more stable and permanent)
+
+      let shareUrl = null;
+
+      // محاولة الرفع على bucket 'invoices'
       const fileName = `invoice-${invoice.id}-${Date.now()}.pdf`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError1 } = await supabase.storage
         .from('invoices')
         .upload(fileName, pdfBlob, { contentType: 'application/pdf', upsert: true });
 
-      if (uploadError) {
-        // If 'invoices' bucket doesn't exist, try 'public' or throw error
-        throw new Error("فشل الرفع لـ Supabase: " + uploadError.message);
+      if (!uploadError1) {
+        const { data: { publicUrl } } = supabase.storage.from('invoices').getPublicUrl(fileName);
+        shareUrl = publicUrl;
+      } else {
+        console.warn("invoices bucket failed:", uploadError1.message);
+        // محاولة bucket 'public'
+        const { error: uploadError2 } = await supabase.storage
+          .from('public')
+          .upload(`invoices/${fileName}`, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+        if (!uploadError2) {
+          const { data: { publicUrl } } = supabase.storage.from('public').getPublicUrl(`invoices/${fileName}`);
+          shareUrl = publicUrl;
+        } else {
+          console.warn("public bucket failed:", uploadError2.message);
+          // fallback: إرسال WhatsApp بدون رابط PDF مع تفاصيل الفاتورة نصياً
+          shareUrl = null;
+        }
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('invoices')
-        .getPublicUrl(fileName);
-      
-      const directDownloadUrl = publicUrl;
-      
-      try {
-        await navigator.clipboard.writeText(directDownloadUrl);
-        showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
-      } catch (clipErr) {
-        console.warn("Clipboard failed", clipErr);
-      }
-      
-      const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF) صالحة للتحميل لمدة ساعة:\n${directDownloadUrl}\nشكراً لك! ✨`;
-      
-      // Better way to handle WhatsApp on mobile and desktop
       const phone = (invoice.customerPhone || "").replace(/\D/g, "");
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
-      
-      // For mobile devices, sometimes window.open is blocked, using location.href as fallback
-      const win = window.open(whatsappUrl, "_blank");
-      if (!win) {
-        window.location.href = whatsappUrl;
+      if (!phone) {
+        showNotif("رقم هاتف العميل غير متوفر. يرجى إضافة رقم الهاتف للعميل أولاً.", "error");
+        return;
       }
+
+      let message;
+      if (shareUrl) {
+        try { await navigator.clipboard.writeText(shareUrl); } catch {}
+        showNotif("تم توليد الرابط ✅ جاري فتح واتساب...", "success");
+        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF):\n${shareUrl}\nشكراً لك! ✨`;
+      } else {
+        // fallback: إرسال تفاصيل الفاتورة نصياً بدون رابط
+        showNotif("تم إرسال تفاصيل الفاتورة عبر واتساب ✅", "success");
+        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\n\n📄 *تفاصيل فاتورتك*\nرقم الفاتورة: ${invoice.id}\nالمبلغ: ${invoice.total} ج.م\nالتاريخ: ${invoice.date || ""}\nالحالة: ${invoice.status === "paid" ? "مدفوعة ✅" : "آجل ⏳"}\n\nشكراً لك! ✨`;
+      }
+
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+      const win = window.open(whatsappUrl, "_blank");
+      if (!win) window.location.href = whatsappUrl;
+
     } catch (e) {
-      console.error(e);
-      showNotif("فشل توليد أو رفع رابط الفاتورة", "error");
+      console.error("handleShareInvoice error:", e);
+      showNotif(`فشل مشاركة الفاتورة: ${e?.message || "خطأ غير متوقع"}`, "error");
     } finally {
       setIsSharing(false);
     }
@@ -1897,50 +1908,60 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
   const handleShareInvoice = async (invoice) => {
     setIsSharing(true);
     try {
-      showNotif("جاري توليد ملف الـ PDF والرفع للغيمة... ⏳", "info");
+      showNotif("جاري توليد ملف الـ PDF... ⏳", "info");
       const pdfBlob = await downloadInvoicePDF(invoice, true);
-      
-      const formData = new FormData();
-      formData.append("file", pdfBlob, `invoice-${invoice.id}.pdf`);
-      
-      // Upload to Supabase Storage (more stable and permanent)
+
+      let shareUrl = null;
+
+      // محاولة الرفع على bucket 'invoices'
       const fileName = `invoice-${invoice.id}-${Date.now()}.pdf`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError1 } = await supabase.storage
         .from('invoices')
         .upload(fileName, pdfBlob, { contentType: 'application/pdf', upsert: true });
 
-      if (uploadError) {
-        // If 'invoices' bucket doesn't exist, try 'public' or throw error
-        throw new Error("فشل الرفع لـ Supabase: " + uploadError.message);
+      if (!uploadError1) {
+        const { data: { publicUrl } } = supabase.storage.from('invoices').getPublicUrl(fileName);
+        shareUrl = publicUrl;
+      } else {
+        console.warn("invoices bucket failed:", uploadError1.message);
+        // محاولة bucket 'public'
+        const { error: uploadError2 } = await supabase.storage
+          .from('public')
+          .upload(`invoices/${fileName}`, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+        if (!uploadError2) {
+          const { data: { publicUrl } } = supabase.storage.from('public').getPublicUrl(`invoices/${fileName}`);
+          shareUrl = publicUrl;
+        } else {
+          console.warn("public bucket failed:", uploadError2.message);
+          shareUrl = null;
+        }
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('invoices')
-        .getPublicUrl(fileName);
-      
-      const directDownloadUrl = publicUrl;
-      
-      try {
-        await navigator.clipboard.writeText(directDownloadUrl);
-        showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
-      } catch (clipErr) {
-        console.warn("Clipboard failed", clipErr);
-      }
-      
-      const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF) صالحة للتحميل لمدة ساعة:\n${directDownloadUrl}\nشكراً لك! ✨`;
-      
-      // Better way to handle WhatsApp on mobile and desktop
       const phone = (invoice.customerPhone || "").replace(/\D/g, "");
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
-      
-      // For mobile devices, sometimes window.open is blocked, using location.href as fallback
-      const win = window.open(whatsappUrl, "_blank");
-      if (!win) {
-        window.location.href = whatsappUrl;
+      if (!phone) {
+        showNotif("رقم هاتف العميل غير متوفر. يرجى إضافة رقم الهاتف للعميل أولاً.", "error");
+        return;
       }
+
+      let message;
+      if (shareUrl) {
+        try { await navigator.clipboard.writeText(shareUrl); } catch {}
+        showNotif("تم توليد الرابط ✅ جاري فتح واتساب...", "success");
+        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF):\n${shareUrl}\nشكراً لك! ✨`;
+      } else {
+        // fallback: إرسال تفاصيل الفاتورة نصياً بدون رابط
+        showNotif("تم إرسال تفاصيل الفاتورة عبر واتساب ✅", "success");
+        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\n\n📄 *تفاصيل فاتورتك*\nرقم الفاتورة: ${invoice.id}\nالمبلغ: ${invoice.total} ج.م\nالتاريخ: ${invoice.date || ""}\nالحالة: ${invoice.status === "paid" ? "مدفوعة ✅" : "آجل ⏳"}\n\nشكراً لك! ✨`;
+      }
+
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+      const win = window.open(whatsappUrl, "_blank");
+      if (!win) window.location.href = whatsappUrl;
+
     } catch (e) {
-      console.error(e);
-      showNotif("فشل رفع أو مشاركة الفاتورة", "error");
+      console.error("handleShareInvoice error:", e);
+      showNotif(`فشل مشاركة الفاتورة: ${e?.message || "خطأ غير متوقع"}`, "error");
     } finally {
       setIsSharing(false);
     }
