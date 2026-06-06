@@ -1213,12 +1213,24 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
       const shareUrl = data.data.url;
       const directDownloadUrl = shareUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
       
-      await navigator.clipboard.writeText(directDownloadUrl);
-      showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
+      try {
+        await navigator.clipboard.writeText(directDownloadUrl);
+        showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
+      } catch (clipErr) {
+        console.warn("Clipboard failed", clipErr);
+      }
       
       const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF) صالحة للتحميل لمدة ساعة:\n${directDownloadUrl}\nشكراً لك! ✨`;
-      const whatsappUrl = `https://wa.me/${invoice.customerPhone || ""}?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, "_blank");
+      
+      // Better way to handle WhatsApp on mobile and desktop
+      const phone = (invoice.customerPhone || "").replace(/\D/g, "");
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+      
+      // For mobile devices, sometimes window.open is blocked, using location.href as fallback
+      const win = window.open(whatsappUrl, "_blank");
+      if (!win) {
+        window.location.href = whatsappUrl;
+      }
     } catch (e) {
       console.error(e);
       showNotif("فشل توليد أو رفع رابط الفاتورة", "error");
@@ -1896,12 +1908,24 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
       const shareUrl = data.data.url;
       const directDownloadUrl = shareUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
       
-      await navigator.clipboard.writeText(directDownloadUrl);
-      showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
+      try {
+        await navigator.clipboard.writeText(directDownloadUrl);
+        showNotif("تم نسخ رابط تحميل الفاتورة المباشر! 📋", "success");
+      } catch (clipErr) {
+        console.warn("Clipboard failed", clipErr);
+      }
       
       const message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF) صالحة للتحميل لمدة ساعة:\n${directDownloadUrl}\nشكراً لك! ✨`;
-      const whatsappUrl = `https://wa.me/${invoice.customerPhone || ""}?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, "_blank");
+      
+      // Better way to handle WhatsApp on mobile and desktop
+      const phone = (invoice.customerPhone || "").replace(/\D/g, "");
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+      
+      // For mobile devices, sometimes window.open is blocked, using location.href as fallback
+      const win = window.open(whatsappUrl, "_blank");
+      if (!win) {
+        window.location.href = whatsappUrl;
+      }
     } catch (e) {
       console.error(e);
       showNotif("فشل رفع أو مشاركة الفاتورة", "error");
