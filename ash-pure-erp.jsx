@@ -118,7 +118,7 @@ const downloadInvoicePDF = async (invoice, isSharing = false) => {
   container.style.fontFamily = "'Tajawal', sans-serif";
   container.style.direction = "rtl";
 
-  const itemsRows = invoice.items.map((item) => `
+  const itemsRows = (invoice.items || []).map((item) => `
     <tr style="border-bottom: 1px solid #eeeeee;">
       <td style="padding: 12px; text-align: right; font-size: 14px; font-weight: 500; color: #111111;">${item.name}</td>
       <td style="padding: 12px; text-align: center; font-size: 14px; color: #111111;">${item.qty}</td>
@@ -1304,6 +1304,7 @@ _شركة ASH PURE_`;
     } catch (e) {
       console.error("handleShareInvoice error:", e);
       showNotif(`فشل مشاركة الفاتورة: ${e?.message || "خطأ غير متوقع"}`, "error");
+      alert("خطأ: " + (e?.message || JSON.stringify(e)));
     } finally {
       setIsSharing(false);
     }
