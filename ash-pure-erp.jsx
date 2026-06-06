@@ -1200,9 +1200,9 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
       const pdfBlob = await downloadInvoicePDF(invoice, true);
 
       let shareUrl = null;
-
-      // محاولة الرفع على bucket 'invoices'
       const fileName = `invoice-${invoice.id}-${Date.now()}.pdf`;
+
+      // محاولة 1: Supabase bucket 'invoices'
       const { error: uploadError1 } = await supabase.storage
         .from('invoices')
         .upload(fileName, pdfBlob, { contentType: 'application/pdf', upsert: true });
@@ -1212,7 +1212,8 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
         shareUrl = publicUrl;
       } else {
         console.warn("invoices bucket failed:", uploadError1.message);
-        // محاولة bucket 'public'
+
+        // محاولة 2: Supabase bucket 'public'
         const { error: uploadError2 } = await supabase.storage
           .from('public')
           .upload(`invoices/${fileName}`, pdfBlob, { contentType: 'application/pdf', upsert: true });
@@ -1222,8 +1223,23 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
           shareUrl = publicUrl;
         } else {
           console.warn("public bucket failed:", uploadError2.message);
-          // fallback: إرسال WhatsApp بدون رابط PDF مع تفاصيل الفاتورة نصياً
-          shareUrl = null;
+
+          // محاولة 3: file.io (سيرفس مجاني بدون إعداد)
+          try {
+            const fileioForm = new FormData();
+            fileioForm.append("file", pdfBlob, fileName);
+            const fileioRes = await fetch("https://file.io/?expires=7d", {
+              method: "POST",
+              body: fileioForm
+            });
+            const fileioData = await fileioRes.json();
+            if (fileioData.success && fileioData.link) {
+              shareUrl = fileioData.link;
+              console.log("file.io upload success:", shareUrl);
+            }
+          } catch (fileioErr) {
+            console.warn("file.io failed:", fileioErr.message);
+          }
         }
       }
 
@@ -1928,9 +1944,9 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
       const pdfBlob = await downloadInvoicePDF(invoice, true);
 
       let shareUrl = null;
-
-      // محاولة الرفع على bucket 'invoices'
       const fileName = `invoice-${invoice.id}-${Date.now()}.pdf`;
+
+      // محاولة 1: Supabase bucket 'invoices'
       const { error: uploadError1 } = await supabase.storage
         .from('invoices')
         .upload(fileName, pdfBlob, { contentType: 'application/pdf', upsert: true });
@@ -1940,7 +1956,8 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
         shareUrl = publicUrl;
       } else {
         console.warn("invoices bucket failed:", uploadError1.message);
-        // محاولة bucket 'public'
+
+        // محاولة 2: Supabase bucket 'public'
         const { error: uploadError2 } = await supabase.storage
           .from('public')
           .upload(`invoices/${fileName}`, pdfBlob, { contentType: 'application/pdf', upsert: true });
@@ -1950,7 +1967,23 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
           shareUrl = publicUrl;
         } else {
           console.warn("public bucket failed:", uploadError2.message);
-          shareUrl = null;
+
+          // محاولة 3: file.io (سيرفس مجاني بدون إعداد)
+          try {
+            const fileioForm = new FormData();
+            fileioForm.append("file", pdfBlob, fileName);
+            const fileioRes = await fetch("https://file.io/?expires=7d", {
+              method: "POST",
+              body: fileioForm
+            });
+            const fileioData = await fileioRes.json();
+            if (fileioData.success && fileioData.link) {
+              shareUrl = fileioData.link;
+              console.log("file.io upload success:", shareUrl);
+            }
+          } catch (fileioErr) {
+            console.warn("file.io failed:", fileioErr.message);
+          }
         }
       }
 
