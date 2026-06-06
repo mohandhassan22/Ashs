@@ -1298,8 +1298,13 @@ _شركة ASH PURE_`;
       }
 
       const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-      const win = window.open(whatsappUrl, "_blank");
-      if (!win) window.location.href = whatsappUrl;
+      const a = document.createElement("a");
+      a.href = whatsappUrl;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
 
     } catch (e) {
       console.error("handleShareInvoice error:", e);
@@ -2064,8 +2069,13 @@ _شركة ASH PURE_`;
       }
 
       const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-      const win = window.open(whatsappUrl, "_blank");
-      if (!win) window.location.href = whatsappUrl;
+      const a = document.createElement("a");
+      a.href = whatsappUrl;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
 
     } catch (e) {
       console.error("handleShareInvoice error:", e);
