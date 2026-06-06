@@ -1202,16 +1202,15 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
       const formData = new FormData();
       formData.append("file", pdfBlob, `invoice-${invoice.id}.pdf`);
       
-      const res = await fetch("https://tmpfiles.org/api/v1/upload", {
+      // Using a more stable service for PDF hosting (file.io)
+      const res = await fetch("https://file.io", {
         method: "POST",
         body: formData
       });
       
       if (!res.ok) throw new Error("فشل رفع الملف");
       const data = await res.json();
-      
-      const shareUrl = data.data.url;
-      const directDownloadUrl = shareUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
+      const directDownloadUrl = data.link;
       
       try {
         await navigator.clipboard.writeText(directDownloadUrl);
@@ -1897,16 +1896,15 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
       const formData = new FormData();
       formData.append("file", pdfBlob, `invoice-${invoice.id}.pdf`);
       
-      const res = await fetch("https://tmpfiles.org/api/v1/upload", {
+      // Using a more stable service for PDF hosting (file.io)
+      const res = await fetch("https://file.io", {
         method: "POST",
         body: formData
       });
       
       if (!res.ok) throw new Error("فشل رفع الملف");
       const data = await res.json();
-      
-      const shareUrl = data.data.url;
-      const directDownloadUrl = shareUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
+      const directDownloadUrl = data.link;
       
       try {
         await navigator.clipboard.writeText(directDownloadUrl);
