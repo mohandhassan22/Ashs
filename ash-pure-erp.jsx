@@ -1270,10 +1270,31 @@ ${itemsList || "   -"}
       if (shareUrl) {
         try { await navigator.clipboard.writeText(shareUrl); } catch {}
         showNotif("تم توليد الرابط ✅ جاري فتح واتساب...", "success");
-        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"} 👋\nيسعدنا تعاملك مع *ASH PURE* 🌟\n\n${invoiceDetails}\n\n📄 *رابط تحميل الفاتورة (PDF):*\n${shareUrl}\n\nشكراً لثقتك بنا! ✨`;
+        message = `السلام عليكم ورحمة الله 👋
+عزيزنا/عزيزتنا *${invoice.customerName || "عميلنا الكريم"}*،
+
+نشكركم على تعاملكم مع شركة *ASH PURE* 🌟
+نرسل إليكم فاتورتكم الرقمية:
+
+${invoiceDetails}
+
+📄 *رابط تحميل الفاتورة (PDF):*
+${shareUrl}
+
+شكراً لثقتكم بنا 🙏
+*شركة ASH PURE*`;
       } else {
         showNotif("تم إرسال تفاصيل الفاتورة عبر واتساب ✅", "success");
-        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"} 👋\nيسعدنا تعاملك مع *ASH PURE* 🌟\n\n${invoiceDetails}\n\nشكراً لثقتك بنا! ✨`;
+        message = `السلام عليكم ورحمة الله 👋
+عزيزنا/عزيزتنا *${invoice.customerName || "عميلنا الكريم"}*،
+
+نشكركم على تعاملكم مع شركة *ASH PURE* 🌟
+نرسل إليكم فاتورتكم الرقمية:
+
+${invoiceDetails}
+
+شكراً لثقتكم بنا 🙏
+*شركة ASH PURE*`;
       }
 
       const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
@@ -2014,10 +2035,31 @@ ${itemsList || "   -"}
       if (shareUrl) {
         try { await navigator.clipboard.writeText(shareUrl); } catch {}
         showNotif("تم توليد الرابط ✅ جاري فتح واتساب...", "success");
-        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"} 👋\nيسعدنا تعاملك مع *ASH PURE* 🌟\n\n${invoiceDetails}\n\n📄 *رابط تحميل الفاتورة (PDF):*\n${shareUrl}\n\nشكراً لثقتك بنا! ✨`;
+        message = `السلام عليكم ورحمة الله 👋
+عزيزنا/عزيزتنا *${invoice.customerName || "عميلنا الكريم"}*،
+
+نشكركم على تعاملكم مع شركة *ASH PURE* 🌟
+نرسل إليكم فاتورتكم الرقمية:
+
+${invoiceDetails}
+
+📄 *رابط تحميل الفاتورة (PDF):*
+${shareUrl}
+
+شكراً لثقتكم بنا 🙏
+*شركة ASH PURE*`;
       } else {
         showNotif("تم إرسال تفاصيل الفاتورة عبر واتساب ✅", "success");
-        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"} 👋\nيسعدنا تعاملك مع *ASH PURE* 🌟\n\n${invoiceDetails}\n\nشكراً لثقتك بنا! ✨`;
+        message = `السلام عليكم ورحمة الله 👋
+عزيزنا/عزيزتنا *${invoice.customerName || "عميلنا الكريم"}*،
+
+نشكركم على تعاملكم مع شركة *ASH PURE* 🌟
+نرسل إليكم فاتورتكم الرقمية:
+
+${invoiceDetails}
+
+شكراً لثقتكم بنا 🙏
+*شركة ASH PURE*`;
       }
 
       const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
