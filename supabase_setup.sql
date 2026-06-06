@@ -337,3 +337,17 @@ CREATE POLICY "Allow authenticated to view settings" ON public.app_settings
 DROP POLICY IF EXISTS "Allow admin to manage settings" ON public.app_settings;
 CREATE POLICY "Allow admin to manage settings" ON public.app_settings
   FOR ALL TO authenticated USING (public.get_user_role() = 'admin');
+
+-- ============================================================
+-- STORAGE SETUP
+-- Execute this in Supabase SQL Editor to create the 'invoices' bucket
+-- ============================================================
+
+-- Create a bucket for invoices if it doesn't exist
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('invoices', 'invoices', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow public access to the invoices bucket
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'invoices');
+CREATE POLICY "Authenticated Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'invoices' AND auth.role() = 'authenticated');

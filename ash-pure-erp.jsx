@@ -1202,15 +1202,22 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
       const formData = new FormData();
       formData.append("file", pdfBlob, `invoice-${invoice.id}.pdf`);
       
-      // Using a more stable service for PDF hosting (file.io)
-      const res = await fetch("https://file.io", {
-        method: "POST",
-        body: formData
-      });
+      // Upload to Supabase Storage (more stable and permanent)
+      const fileName = `invoice-${invoice.id}-${Date.now()}.pdf`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('invoices')
+        .upload(fileName, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+      if (uploadError) {
+        // If 'invoices' bucket doesn't exist, try 'public' or throw error
+        throw new Error("فشل الرفع لـ Supabase: " + uploadError.message);
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('invoices')
+        .getPublicUrl(fileName);
       
-      if (!res.ok) throw new Error("فشل رفع الملف");
-      const data = await res.json();
-      const directDownloadUrl = data.link;
+      const directDownloadUrl = publicUrl;
       
       try {
         await navigator.clipboard.writeText(directDownloadUrl);
@@ -1896,15 +1903,22 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
       const formData = new FormData();
       formData.append("file", pdfBlob, `invoice-${invoice.id}.pdf`);
       
-      // Using a more stable service for PDF hosting (file.io)
-      const res = await fetch("https://file.io", {
-        method: "POST",
-        body: formData
-      });
+      // Upload to Supabase Storage (more stable and permanent)
+      const fileName = `invoice-${invoice.id}-${Date.now()}.pdf`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('invoices')
+        .upload(fileName, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+      if (uploadError) {
+        // If 'invoices' bucket doesn't exist, try 'public' or throw error
+        throw new Error("فشل الرفع لـ Supabase: " + uploadError.message);
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('invoices')
+        .getPublicUrl(fileName);
       
-      if (!res.ok) throw new Error("فشل رفع الملف");
-      const data = await res.json();
-      const directDownloadUrl = data.link;
+      const directDownloadUrl = publicUrl;
       
       try {
         await navigator.clipboard.writeText(directDownloadUrl);
