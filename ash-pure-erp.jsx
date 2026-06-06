@@ -1233,15 +1233,16 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
         return;
       }
 
+      const invoiceDetails = `🧾 *فاتورة ASH PURE*\n━━━━━━━━━━━━━━━━\n👤 *العميل:* ${invoice.customerName || "عميلنا العزيز"}\n🔢 *رقم الفاتورة:* ${invoice.id}\n📅 *التاريخ:* ${invoice.date || ""}\n💰 *المبلغ الإجمالي:* ${invoice.total} ج.م\n✅ *المدفوع:* ${invoice.paid ?? invoice.total} ج.م\n⏳ *المتبقي:* ${invoice.remaining ?? 0} ج.م\n💳 *طريقة الدفع:* ${invoice.paymentMethod || "كاش"}\n📦 *الحالة:* ${invoice.status === "paid" ? "مدفوعة ✅" : "آجل ⏳"}\n━━━━━━━━━━━━━━━━`;
+
       let message;
       if (shareUrl) {
         try { await navigator.clipboard.writeText(shareUrl); } catch {}
         showNotif("تم توليد الرابط ✅ جاري فتح واتساب...", "success");
-        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF):\n${shareUrl}\nشكراً لك! ✨`;
+        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"} 👋\nيسعدنا تعاملك مع *ASH PURE* 🌟\n\n${invoiceDetails}\n\n📄 *رابط تحميل الفاتورة (PDF):*\n${shareUrl}\n\nشكراً لثقتك بنا! ✨`;
       } else {
-        // fallback: إرسال تفاصيل الفاتورة نصياً بدون رابط
         showNotif("تم إرسال تفاصيل الفاتورة عبر واتساب ✅", "success");
-        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\n\n📄 *تفاصيل فاتورتك*\nرقم الفاتورة: ${invoice.id}\nالمبلغ: ${invoice.total} ج.م\nالتاريخ: ${invoice.date || ""}\nالحالة: ${invoice.status === "paid" ? "مدفوعة ✅" : "آجل ⏳"}\n\nشكراً لك! ✨`;
+        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"} 👋\nيسعدنا تعاملك مع *ASH PURE* 🌟\n\n${invoiceDetails}\n\nشكراً لثقتك بنا! ✨`;
       }
 
       const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
@@ -1944,15 +1945,16 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
         return;
       }
 
+      const invoiceDetails = `🧾 *فاتورة ASH PURE*\n━━━━━━━━━━━━━━━━\n👤 *العميل:* ${invoice.customerName || "عميلنا العزيز"}\n🔢 *رقم الفاتورة:* ${invoice.id}\n📅 *التاريخ:* ${invoice.date || ""}\n💰 *المبلغ الإجمالي:* ${invoice.total} ج.م\n✅ *المدفوع:* ${invoice.paid ?? invoice.total} ج.م\n⏳ *المتبقي:* ${invoice.remaining ?? 0} ج.م\n💳 *طريقة الدفع:* ${invoice.paymentMethod || "كاش"}\n📦 *الحالة:* ${invoice.status === "paid" ? "مدفوعة ✅" : "آجل ⏳"}\n━━━━━━━━━━━━━━━━`;
+
       let message;
       if (shareUrl) {
         try { await navigator.clipboard.writeText(shareUrl); } catch {}
         showNotif("تم توليد الرابط ✅ جاري فتح واتساب...", "success");
-        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\nإليك رابط تحميل فاتورتك الرقمية (PDF):\n${shareUrl}\nشكراً لك! ✨`;
+        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"} 👋\nيسعدنا تعاملك مع *ASH PURE* 🌟\n\n${invoiceDetails}\n\n📄 *رابط تحميل الفاتورة (PDF):*\n${shareUrl}\n\nشكراً لثقتك بنا! ✨`;
       } else {
-        // fallback: إرسال تفاصيل الفاتورة نصياً بدون رابط
         showNotif("تم إرسال تفاصيل الفاتورة عبر واتساب ✅", "success");
-        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\n\n📄 *تفاصيل فاتورتك*\nرقم الفاتورة: ${invoice.id}\nالمبلغ: ${invoice.total} ج.م\nالتاريخ: ${invoice.date || ""}\nالحالة: ${invoice.status === "paid" ? "مدفوعة ✅" : "آجل ⏳"}\n\nشكراً لك! ✨`;
+        message = `مرحباً ${invoice.customerName || "عميلنا العزيز"} 👋\nيسعدنا تعاملك مع *ASH PURE* 🌟\n\n${invoiceDetails}\n\nشكراً لثقتك بنا! ✨`;
       }
 
       const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
