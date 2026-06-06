@@ -1244,7 +1244,7 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
         message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\n\n📄 *تفاصيل فاتورتك*\nرقم الفاتورة: ${invoice.id}\nالمبلغ: ${invoice.total} ج.م\nالتاريخ: ${invoice.date || ""}\nالحالة: ${invoice.status === "paid" ? "مدفوعة ✅" : "آجل ⏳"}\n\nشكراً لك! ✨`;
       }
 
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
       const win = window.open(whatsappUrl, "_blank");
       if (!win) window.location.href = whatsappUrl;
 
@@ -1955,7 +1955,7 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes }) {
         message = `مرحباً ${invoice.customerName || "عميلنا العزيز"}،\nيسعدنا تعاملك مع ASH PURE.\n\n📄 *تفاصيل فاتورتك*\nرقم الفاتورة: ${invoice.id}\nالمبلغ: ${invoice.total} ج.م\nالتاريخ: ${invoice.date || ""}\nالحالة: ${invoice.status === "paid" ? "مدفوعة ✅" : "آجل ⏳"}\n\nشكراً لك! ✨`;
       }
 
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
       const win = window.open(whatsappUrl, "_blank");
       if (!win) window.location.href = whatsappUrl;
 
