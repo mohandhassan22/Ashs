@@ -1,0 +1,24 @@
+{
+  "name": "Ash Pure ERP",
+  "short_name": "Ash ERP",
+  "description": "نظام إدارة المبيعات والمخزون المتقدم",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0F",
+  "theme_color": "#0A0A0F",
+  "orientation": "portrait-primary",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'><rect width='192' height='192' fill='%230A0A0F'/><text x='96' y='108' font-size='48' font-weight='bold' font-family='sans-serif' fill='%23D4AF37' text-anchor='middle'>ASH</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><rect width='512' height='512' fill='%230A0A0F'/><text x='256' y='288' font-size='128' font-weight='bold' font-family='sans-serif' fill='%23D4AF37' text-anchor='middle'>ASH</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
