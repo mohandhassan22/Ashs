@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   min_qty integer DEFAULT 10,
   image text,
   notes text,
+  sale_unit text DEFAULT 'piece' CHECK (sale_unit IN ('piece', 'weight')),
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );

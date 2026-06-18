@@ -73,10 +73,13 @@ const formatCurrency = (n) => `${(n || 0).toLocaleString("ar-EG")} ج.م`;
 const formatDate = (d) => d ? new Date(d).toLocaleDateString("ar-EG") : "-";
 const generateId = (prefix) => `${prefix}-${Date.now().toString().slice(-6)}`;
 
-const formatStock = (stockVal) => {
-  if (stockVal === undefined || stockVal === null) return "0 كيلو";
+const formatStock = (stockVal, saleUnit = 'weight') => {
+  if (stockVal === undefined || stockVal === null) return saleUnit === 'weight' ? "0 كيلو" : "0 قطعة";
   const num = Number(stockVal);
-  if (isNaN(num)) return "0 كيلو";
+  if (isNaN(num)) return saleUnit === 'weight' ? "0 كيلو" : "0 قطعة";
+  if (saleUnit !== 'weight') {
+    return `${num} قطعة`;
+  }
   const kg = Math.floor(num);
   const grams = Math.round((num - kg) * 1000);
   if (kg > 0 && grams > 0) {
@@ -90,8 +93,11 @@ const formatStock = (stockVal) => {
   }
 };
 
-const formatQty = (qty) => {
+const formatQty = (qty, saleUnit = 'weight') => {
   const num = Number(qty);
+  if (saleUnit !== 'weight') {
+    return `${num} قطعة`;
+  }
   if (num < 1) {
     return `${num * 1000} جرام`;
   }
@@ -126,7 +132,7 @@ const loadScript = (src) => {
   });
 };
 
-const downloadInvoicePDF = async (invoice, isSharing = false) => {
+const downloadInvoicePDF = async (invoice, isSharing = false, products = []) => {
   // 1. Dynamic CDN Loading for PDF dependencies
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
@@ -143,14 +149,18 @@ const downloadInvoicePDF = async (invoice, isSharing = false) => {
   container.style.fontFamily = "'Tajawal', sans-serif";
   container.style.direction = "rtl";
 
-  const itemsRows = (invoice.items || []).map((item) => `
-    <tr style="border-bottom: 1px solid #eeeeee;">
-      <td style="padding: 12px; text-align: right; font-size: 14px; font-weight: 500; color: #111111;">${item.name}</td>
-      <td style="padding: 12px; text-align: center; font-size: 14px; color: #111111;">${formatQty(item.qty)}</td>
-      <td style="padding: 12px; text-align: left; font-size: 14px; color: #111111;">${formatCurrency(item.price)}</td>
-      <td style="padding: 12px; text-align: left; font-size: 14px; font-weight: bold; color: #8B7355;">${formatCurrency(item.total)}</td>
-    </tr>
-  `).join("");
+  const itemsRows = (invoice.items || []).map((item) => {
+    const prod = products.find(p => p.id === item.productId);
+    const saleUnit = prod ? prod.sale_unit : 'weight';
+    return `
+      <tr style="border-bottom: 1px solid #eeeeee;">
+        <td style="padding: 12px; text-align: right; font-size: 14px; font-weight: 500; color: #111111;">${item.name}</td>
+        <td style="padding: 12px; text-align: center; font-size: 14px; color: #111111;">${formatQty(item.qty, saleUnit)}</td>
+        <td style="padding: 12px; text-align: left; font-size: 14px; color: #111111;">${formatCurrency(item.price)}</td>
+        <td style="padding: 12px; text-align: left; font-size: 14px; font-weight: bold; color: #8B7355;">${formatCurrency(item.total)}</td>
+      </tr>
+    `;
+  }).join("");
 
   const subtotal = invoice.subtotal || invoice.items.reduce((s, i) => s + i.total, 0);
   // discount is now a fixed amount in EGP
@@ -783,7 +793,7 @@ function ProductModal({ product, onSave, onClose }) {
   const [form, setForm] = useState(product || {
     name: "", sku: "", barcode: "", category: "شامبو", qty: 0,
     buyPrice: 0, sellPrice: 0, traderPrice: 0, specialistPrice: 0, clientPrice: 0,
-    supplier: "", expiry: "", minQty: 10, notes: ""
+    supplier: "", expiry: "", minQty: 10, notes: "", sale_unit: "piece"
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -801,7 +811,7 @@ function ProductModal({ product, onSave, onClose }) {
           <button className="btn-icon" onClick={onClose}><Icon name="close" size={16} /></button>
         </div>
         <div className="modal-body">
-          <div className="grid grid-2">
+          <div className="grid grid-3">
             <div className="form-group">
               <label className="form-label">اسم المنتج *</label>
               <input className="form-control" value={form.name} onChange={e => set("name", e.target.value)} placeholder="اسم المنتج" />
@@ -810,6 +820,13 @@ function ProductModal({ product, onSave, onClose }) {
               <label className="form-label">التصنيف</label>
               <select className="form-control" value={form.category} onChange={e => set("category", e.target.value)}>
                 {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">وحدة البيع</label>
+              <select className="form-control" value={form.sale_unit || "piece"} onChange={e => set("sale_unit", e.target.value)}>
+                <option value="piece">قطعة (Piece)</option>
+                <option value="weight">وزن (كيلو/جرام)</option>
               </select>
             </div>
           </div>
@@ -976,6 +993,7 @@ function ProductsPage({ products, setProducts, wasteLogs = [], setWasteLogs, use
       price_specialist: prod.specialistPrice, price_dealer: prod.traderPrice,
       traderPrice: prod.traderPrice, specialistPrice: prod.specialistPrice, clientPrice: prod.clientPrice,
       supplier: prod.supplier, expiry: prod.expiry || null, min_qty: prod.minQty, notes: prod.notes,
+      sale_unit: prod.sale_unit || "piece",
     };
     if (prod.id && products.find(p => p.id === prod.id)) {
       const { error } = await supabase.from("products").update(payload).eq("id", prod.id);
@@ -1094,8 +1112,8 @@ created_by: user?.id || null,  // UUID, not email
                       <td data-label="الكمية">
                         <div className="stock-indicator">
                           <div className="stock-dot" style={{ background: stockColor(p) }} />
-                          <span style={{ color: stockColor(p), fontWeight: 600 }}>{formatStock(p.qty)}</span>
-                          <span style={{ color: "var(--text3)", fontSize: 10 }}>/ الحد الأدنى: {formatStock(p.minQty)}</span>
+                          <span style={{ color: stockColor(p), fontWeight: 600 }}>{formatStock(p.qty, p.sale_unit)}</span>
+                          <span style={{ color: "var(--text3)", fontSize: 10 }}>/ الحد الأدنى: {formatStock(p.minQty, p.sale_unit)}</span>
                         </div>
                       </td>
                       <td data-label="سعر الشراء">{formatCurrency(p.buyPrice)}</td>
@@ -1224,7 +1242,7 @@ function POSPage({ products, setProducts, customers, invoices, setInvoices, show
     setIsSharing(true);
     try {
       showNotif("جاري توليد ملف الـ PDF... ⏳", "info");
-      const pdfBlob = await downloadInvoicePDF(invoice, true);
+      const pdfBlob = await downloadInvoicePDF(invoice, true, products);
 
       let shareUrl = null;
       const fileName = `invoice-${invoice.id}-${Date.now()}.pdf`;
@@ -1353,40 +1371,44 @@ _شركة ASH PURE_`;
     if (product.qty === 0) return showNotif("المنتج نفذ من المخزون", "error");
     setCart(prev => {
       const existing = prev.find(i => i.productId === product.id);
+      const saleUnit = product.sale_unit || 'piece';
       if (existing) {
         const existingQtyInKg = existing.unit === 'g' ? existing.qty / 1000 : existing.qty;
         if (existingQtyInKg >= product.qty) return showNotif("لا توجد كمية كافية في المخزن", "error"), prev;
-        const addStep = existing.unit === 'g' ? 100 : 1;
-        const newQty = existing.qty + addStep;
-        return prev.map(i => i.productId === product.id ? { ...i, qty: newQty, total: i.movement_type === 'sale' ? (i.unit === 'g' ? (newQty * i.price / 1000) : (newQty * i.price)) : 0 } : i);
+        const addStep = existing.unit === 'g' ? 100 : (existing.unit === 'kg' ? 0.1 : 1);
+        const newQty = Number((existing.qty + addStep).toFixed(3));
+        const total = existing.movement_type === 'sale' ? (existing.unit === 'g' ? (newQty * existing.price / 1000) : (newQty * existing.price)) : 0;
+        return prev.map(i => i.productId === product.id ? { ...i, qty: newQty, total: Number(total.toFixed(2)) } : i);
       }
       // If customer has a special price for this product, use it
       const special = selectedCustomer ? (product.specialPrice || getSpecialPriceFromMock(selectedCustomer.id, product.id)) : null;
       const basePrice = special != null ? special : (product[priceKey] || product.clientPrice || 0);
-      return [...prev, { productId: product.id, name: product.name, qty: 1, unit: 'kg', price: basePrice, total: basePrice, maxQty: product.qty, movement_type: 'sale' }];
+      const defaultUnit = saleUnit === 'weight' ? 'kg' : 'piece';
+      return [...prev, { productId: product.id, name: product.name, qty: 1, unit: defaultUnit, price: basePrice, total: basePrice, maxQty: product.qty, movement_type: 'sale' }];
     });
   };
 
   const updateQty = (productId, delta) => {
     setCart(prev => prev.map(i => {
       if (i.productId !== productId) return i;
-      const step = i.unit === 'g' ? 100 : 1;
+      const step = i.unit === 'g' ? 100 : (i.unit === 'kg' ? 0.1 : 1);
       const newQty = i.qty + (delta * step);
       if (newQty <= 0) return null;
       const maxAllowed = i.unit === 'g' ? i.maxQty * 1000 : i.maxQty;
       if (newQty > maxAllowed) return showNotif("لا توجد كمية كافية في المخزن", "warning"), i;
       const total = i.movement_type === 'sale' ? (i.unit === 'g' ? (newQty * i.price / 1000) : (newQty * i.price)) : 0;
-      return { ...i, qty: newQty, total };
+      return { ...i, qty: Number(newQty.toFixed(3)), total: Number(total.toFixed(2)) };
     }).filter(Boolean));
   };
 
   const toggleUnit = (productId) => {
     setCart(prev => prev.map(i => {
       if (i.productId !== productId) return i;
+      if (i.unit === 'piece') return i;
       const newUnit = i.unit === 'g' ? 'kg' : 'g';
       const newQty = newUnit === 'g' ? i.qty * 1000 : i.qty / 1000;
       const total = i.movement_type === 'sale' ? (newUnit === 'g' ? (newQty * i.price / 1000) : (newQty * i.price)) : 0;
-      return { ...i, unit: newUnit, qty: newQty, total };
+      return { ...i, unit: newUnit, qty: Number(newQty.toFixed(3)), total: Number(total.toFixed(2)) };
     }));
   };
 
@@ -1442,7 +1464,7 @@ _شركة ASH PURE_`;
     const displayInvoice = {
       id: invoiceId, customerName: selectedCustomer?.name || "عميل نقدي",
       date: new Date().toISOString().split("T")[0], total,
-      items: cart.map(i => ({ name: i.name, qty: i.unit === 'g' ? i.qty / 1000 : i.qty, total: i.total })),
+      items: cart.map(i => ({ productId: i.productId, name: i.name, qty: i.unit === 'g' ? i.qty / 1000 : i.qty, total: i.total })),
     };
     setShowSuccess(displayInvoice);
     setCart([]); setSearch(""); setDiscount(0); setTax(0); setPaidAmount("");
@@ -1592,10 +1614,11 @@ _شركة ASH PURE_`;
                       <input 
                         type="number" 
                         value={item.qty} 
-                        step={item.unit === 'g' ? 50 : 0.1}
-                        min={item.unit === 'g' ? 50 : 0.01}
+                        step={item.unit === 'g' ? 50 : (item.unit === 'kg' ? 0.1 : 1)}
+                        min={item.unit === 'g' ? 50 : (item.unit === 'kg' ? 0.1 : 1)}
                         onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
+                          const isWeight = item.unit === 'kg' || item.unit === 'g';
+                          const val = isWeight ? (parseFloat(e.target.value) || 0) : (parseInt(e.target.value, 10) || 0);
                           const maxAllowed = item.unit === 'g' ? item.maxQty * 1000 : item.maxQty;
                           if (val > maxAllowed) {
                             showNotif("الكمية المطلوبة تتعدى المتوفر في المخزن", "warning");
@@ -1624,22 +1647,44 @@ _شركة ASH PURE_`;
                         }}
                       />
                       <button className="qty-btn" style={{ width: 28, height: 28 }} onClick={() => updateQty(item.productId, 1)}>+</button>
-                      <button 
-                        onClick={() => toggleUnit(item.productId)}
-                        style={{
-                          border: '1px solid var(--border)',
-                          background: 'var(--card)',
-                          color: 'var(--gold)',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: '4px 8px',
-                          borderRadius: 'var(--radius-sm)',
-                          cursor: 'pointer',
-                          minHeight: 28
-                        }}
-                      >
-                        {item.unit === 'g' ? 'جرام' : 'كيلو'}
-                      </button>
+                      
+                      {/* Only show/enable unit toggle button if item is weight-based */}
+                      {(item.unit === 'kg' || item.unit === 'g') ? (
+                        <button 
+                          onClick={() => toggleUnit(item.productId)}
+                          style={{
+                            border: '1px solid var(--border)',
+                            background: 'var(--card)',
+                            color: 'var(--gold)',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '4px 8px',
+                            borderRadius: 'var(--radius-sm)',
+                            cursor: 'pointer',
+                            minHeight: 28
+                          }}
+                        >
+                          {item.unit === 'g' ? 'جرام' : 'كيلو'}
+                        </button>
+                      ) : (
+                        <span 
+                          style={{
+                            border: '1px solid var(--border)',
+                            background: 'rgba(255,255,255,0.02)',
+                            color: 'var(--text3)',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '4px 8px',
+                            borderRadius: 'var(--radius-sm)',
+                            minHeight: 28,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          قطعة
+                        </span>
+                      )}
                     </div>
 
                     {/* Price Input or Label */}
@@ -1788,17 +1833,21 @@ _شركة ASH PURE_`;
                 <div style={{ color: "var(--text2)", marginTop: 4 }}>{showSuccess.customerName} • {formatDate(showSuccess.date)}</div>
               </div>
               <div style={{ background: "var(--card)", borderRadius: "var(--radius-sm)", padding: 16, marginBottom: 16 }}>
-                {showSuccess.items.map((item, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
-                    <span>{item.name} × {formatQty(item.qty)}</span>
-                    <span>{formatCurrency(item.total)}</span>
-                  </div>
-                ))}
+                {showSuccess.items.map((item, i) => {
+                  const prod = products.find(p => p.id === item.productId);
+                  const saleUnit = prod ? prod.sale_unit : 'weight';
+                  return (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
+                      <span>{item.name} × {formatQty(item.qty, saleUnit)}</span>
+                      <span>{formatCurrency(item.total)}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <div className="modal-footer" style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "space-between", width: "100%" }}>
               <div style={{ display: "flex", gap: 6 }}>
-                <button className="btn btn-secondary" onClick={() => downloadInvoicePDF(showSuccess)} style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--text)" }}>
+                <button className="btn btn-secondary" onClick={() => downloadInvoicePDF(showSuccess, false, products)} style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--text)" }}>
                   <Icon name="download" size={16} /> تحميل PDF
                 </button>
                 <button className="btn btn-secondary" onClick={() => handleShareInvoice(showSuccess)} disabled={isSharing} style={{ background: "var(--gold-bg)", color: "var(--gold)", border: "1px solid var(--gold)" }}>
@@ -2149,7 +2198,7 @@ function InvoicesPage({ invoices, customers, showNotif, customerTypes, products,
     setIsSharing(true);
     try {
       showNotif("جاري توليد ملف الـ PDF... ⏳", "info");
-      const pdfBlob = await downloadInvoicePDF(invoice, true);
+      const pdfBlob = await downloadInvoicePDF(invoice, true, products);
 
       let shareUrl = null;
       const fileName = `invoice-${invoice.id}-${Date.now()}.pdf`;
@@ -2315,7 +2364,7 @@ _شركة ASH PURE_`;
 	                  <td data-label="إجراءات">
 	                    <div style={{ display: "flex", gap: 4 }}>
 	                      <button className="btn-icon" onClick={() => setViewInvoice(inv)} title="عرض الفاتورة"><Icon name="eye" size={14} /></button>
-	                      <button className="btn-icon" onClick={() => downloadInvoicePDF(inv)} title="تحميل PDF"><Icon name="download" size={14} /></button>
+	                      <button className="btn-icon" onClick={() => downloadInvoicePDF(inv, false, products)} title="تحميل PDF"><Icon name="download" size={14} /></button>
 	                      <button className="btn-icon" onClick={() => handleShareInvoice(inv)} disabled={isSharing} title="مشاركة و WhatsApp" style={{ color: "var(--gold)" }}>
 	                        <Icon name="link" size={14} />
 	                      </button>
@@ -2344,7 +2393,7 @@ _شركة ASH PURE_`;
             <div className="modal-header">
               <span className="modal-title">فاتورة {viewInvoice.id}</span>
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => downloadInvoicePDF(viewInvoice)} style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => downloadInvoicePDF(viewInvoice, false, products)} style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
                   <Icon name="download" size={14} /> تحميل PDF
                 </button>
                 <button className="btn btn-secondary btn-sm" onClick={() => handleShareInvoice(viewInvoice)} disabled={isSharing} style={{ background: "var(--gold-bg)", color: "var(--gold)", border: "1px solid var(--gold)" }}>
@@ -2393,7 +2442,7 @@ _شركة ASH PURE_`;
                             {item.movement_type === 'waste' && <span style={{ padding: '2px 6px', borderRadius: 6, background: '#FF4D4F', color: '#fff', fontSize: 12 }}>هالك</span>}
                             {isSpecial && <span style={{ padding: '2px 6px', borderRadius: 6, background: 'gold', color: '#000', fontSize: 12 }}>سعر خاص</span>}
                           </td>
-                          <td>{formatQty(item.qty)}</td>
+                          <td>{formatQty(item.qty, prod?.sale_unit)}</td>
                           <td>{item.movement_type === 'sale' ? (isSpecial ? <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ textDecoration: 'line-through', color: '#888' }}>{formatCurrency(defaultPrice)}</span><span style={{ color: 'gold', fontWeight: 800 }}>{formatCurrency(item.price)}</span></span> : formatCurrency(item.price)) : '-'}</td>
                           <td style={{ fontWeight: 600, color: "var(--gold)" }}>{formatCurrency(item.total)}</td>
                         </tr>
@@ -2452,14 +2501,17 @@ _شركة ASH PURE_`;
                     </tr>
                   </thead>
                   <tbody>
-                    {refundInvoice.items.map((item, i) => (
-                      <tr key={i}>
-                        <td style={{ padding: "8px 12px" }}>{item.name}</td>
-                        <td style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700, color: "var(--red)" }}>
-                          {formatQty(item.qty)}
-                        </td>
-                      </tr>
-                    ))}
+                    {refundInvoice.items.map((item, i) => {
+                      const prod = products.find(p => p.id === item.productId);
+                      return (
+                        <tr key={i}>
+                          <td style={{ padding: "8px 12px" }}>{item.name}</td>
+                          <td style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700, color: "var(--red)" }}>
+                            {formatQty(item.qty, prod?.sale_unit)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -2614,7 +2666,7 @@ function ReportsPage({ invoices, products, customers, wasteLogs = [] }) {
                   return (
                     <tr key={p.id}>
                       <td style={{ fontWeight: 600 }}>{p.name}</td>
-                      <td>{formatQty(p.soldQty)}</td>
+                      <td>{formatQty(p.soldQty, products.find(prod => prod.id === p.id)?.sale_unit || 'weight')}</td>
                       <td style={{ color: "var(--gold)" }}>{formatCurrency(p.revenue)}</td>
                       <td style={{ color: "var(--red)" }}>{formatCurrency(cost)}</td>
                       <td style={{ color: "var(--green)" }}>{formatCurrency(profit)}</td>
@@ -2672,8 +2724,8 @@ function ReportsPage({ invoices, products, customers, wasteLogs = [] }) {
                   <tr key={p.id}>
                     <td style={{ fontWeight: 600 }}>{p.name}</td>
                     <td><span className="tag">{p.sku}</span></td>
-                    <td style={{ fontWeight: 600 }}>{formatStock(p.qty)}</td>
-                    <td style={{ color: "var(--text3)" }}>{formatStock(p.minQty)}</td>
+                    <td style={{ fontWeight: 600 }}>{formatStock(p.qty, p.sale_unit)}</td>
+                    <td style={{ color: "var(--text3)" }}>{formatStock(p.minQty, p.sale_unit)}</td>
                     <td style={{ color: "var(--gold)" }}>{formatCurrency(p.qty * p.buyPrice)}</td>
                     <td style={{ color: "var(--text2)", fontSize: 12 }}>{formatDate(p.expiry)}</td>
                     <td>
@@ -2893,6 +2945,12 @@ function SettingsPage({ user, showNotif, reloadData }) {
             row["qty"] || row["الكمية الحالية"] || 0
           ).replace(/[^\d.]/g, "")) || 0;
 
+          let saleUnitVal = "piece";
+          const rawUnit = String(row["وحدة البيع"] || row["وحدة_البيع"] || row["sale_unit"] || row["unit"] || "").trim().toLowerCase();
+          if (rawUnit.includes("weight") || rawUnit.includes("وزن") || rawUnit.includes("كيلو") || rawUnit.includes("جرام") || rawUnit.includes("كجم") || rawUnit.includes("جم")) {
+            saleUnitVal = "weight";
+          }
+
           const payload = {
             name: String(pName).trim(),
             sku: String(row["sku"] || row["كود"] || row["الرمز"] || row["الكود"] || generateId("AP")).trim(),
@@ -2909,6 +2967,7 @@ function SettingsPage({ user, showNotif, reloadData }) {
             supplier: row["المورد"] || row["supplier"] || "مورد عام",
             notes: row["ملاحظات"] || row["notes"] || null,
             min_qty: parseInt(row["min_qty"] || row["الحد الأدنى"] || 10),
+            sale_unit: saleUnitVal,
           };
 
           const { error } = await supabase.from("products").upsert(payload, { onConflict: "sku" });
@@ -3226,11 +3285,12 @@ function SettingsPage({ user, showNotif, reloadData }) {
                   'SKU': p.sku,
                   'الباركود': p.barcode,
                   'التصنيف': p.category,
-                  'المخزون': p.qty,
-                  'التكلفة': p.buyPrice,
-                  'سعر بيع التجزئة': p.clientPrice,
-                  'سعر الجملة': p.traderPrice,
-                  'سعر الأخصائي': p.specialistPrice,
+                  'المخزون': p.stock ?? 0,
+                  'التكلفة': p.cost ?? 0,
+                  'سعر بيع التجزئة': p.price_retail ?? 0,
+                  'سعر الجملة': p.price_dealer ?? 0,
+                  'سعر الأخصائي': p.price_specialist ?? 0,
+                  'وحدة البيع': p.sale_unit === 'weight' ? 'وزن' : 'قطعة',
                   'تاريخ الصلاحية': p.expiry
                 }));
                 
@@ -3413,6 +3473,7 @@ export default function App() {
     clientPrice: r.clientPrice || r.price_retail || 0,
     supplier: r.supplier || "", expiry: r.expiry || "", minQty: r.min_qty ?? 10,
     notes: r.notes || "", image: r.image || null,
+    sale_unit: r.sale_unit || "piece",
   });
   const mapCustomer = r => ({
     id: r.id, name: r.name, phone: r.phone || "", address: r.address || "",
