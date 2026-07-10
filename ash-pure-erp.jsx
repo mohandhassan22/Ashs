@@ -540,7 +540,7 @@ const styles = `
   .cart-items::-webkit-scrollbar { width: 4px; }
   .cart-items::-webkit-scrollbar-track { background: transparent; }
   .cart-items::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.2); border-radius: 4px; }
-  .cart-footer { padding: 12px 16px; border-top: 1px solid var(--border); flex-shrink: 0; background: rgba(15,15,22,0.6); }
+  .cart-footer { padding: 10px 14px; border-top: 1px solid var(--border); flex-shrink: 0; background: rgba(15,15,22,0.6); }
   .cart-item { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: var(--radius); border: 1px solid rgba(212,175,55,0.12); background: rgba(20,20,30,0.45); backdrop-filter: blur(8px); transition: all 0.2s ease; position: relative; }
   .cart-item:hover { border-color: rgba(212,175,55,0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
   .cart-item-name { font-size: 13px; font-weight: 700; line-height: 1.4; }
@@ -1849,35 +1849,49 @@ _شركة ASH PURE_`;
           </div>
 
           <div className="cart-footer">
-            <div className="grid grid-2" style={{ marginBottom: 10 }}>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">خصم بالجنيه (ج.م)</label>
-                <input className="form-control" type="number" min="0" value={discount} onChange={e => setDiscount(+e.target.value)} placeholder="0" />
+            {/* Compact discount + payment in one row */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, background: 'rgba(20,20,30,0.6)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '0 10px', height: 38 }}>
+                <label style={{ fontSize: 11, color: 'var(--text3)', whiteSpace: 'nowrap', fontWeight: 600 }}>خصم</label>
+                <input
+                  type="number" min="0" value={discount}
+                  onChange={e => setDiscount(+e.target.value)}
+                  placeholder="0"
+                  style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--gold)', fontSize: 13, fontWeight: 700, outline: 'none', textAlign: 'center', width: '100%' }}
+                />
+                <span style={{ fontSize: 10, color: 'var(--text3)' }}>ج.م</span>
               </div>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">ضريبة %</label>
-                <input className="form-control" type="number" min="0" value={tax} onChange={e => setTax(+e.target.value)} />
+              <div style={{ flex: 2, position: 'relative' }}>
+                <select
+                  value={paymentMethod}
+                  onChange={e => setPaymentMethod(e.target.value)}
+                  style={{
+                    width: '100%', height: 38,
+                    background: 'rgba(20,20,30,0.8)',
+                    border: '1px solid rgba(212,175,55,0.35)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: '#fff', fontSize: 13, fontWeight: 700,
+                    padding: '0 32px 0 10px',
+                    outline: 'none', cursor: 'pointer',
+                    appearance: 'none', WebkitAppearance: 'none',
+                    backgroundImage: 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23D4AF37\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'6 9 12 15 18 9\'></polyline></svg>")',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'left 8px center',
+                    backgroundSize: '14px'
+                  }}
+                >
+                  {PAYMENT_METHODS.map(m => (
+                    <option key={m.id} value={m.id} style={{ background: 'var(--bg2)', color: '#fff' }}>{m.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <div className="form-label" style={{ marginBottom: 8 }}>طريقة الدفع</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-                {PAYMENT_METHODS.map(m => (
-                  <button key={m.id} className={`btn btn-sm ${paymentMethod === m.id ? "btn-primary" : "btn-secondary"}`} style={{ flexDirection: "column", gap: 2, padding: "8px 6px" }} onClick={() => setPaymentMethod(m.id)}>
-                    <span style={{ fontSize: 16 }}>{m.icon}</span>
-                    <span style={{ fontSize: 10 }}>{m.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ padding: "12px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", marginBottom: 12 }}>
-              <div className="total-row" style={{ fontSize: 13 }}><span>المجموع الفرعي</span><span>{formatCurrency(subtotal)}</span></div>
-              {discountAmt > 0 && <div className="total-row" style={{ color: "var(--green)", fontSize: 13 }}><span>خصم ({discountPct}%)</span><span>- {formatCurrency(discountAmt)}</span></div>}
-              {tax > 0 && <div className="total-row" style={{ color: "var(--text2)", fontSize: 13 }}><span>ضريبة ({tax}%)</span><span>+ {formatCurrency(taxAmt)}</span></div>}
-              {remaining > 0 && <div className="total-row" style={{ color: "var(--red)", fontSize: 13 }}><span>المتبقي</span><span>{formatCurrency(remaining)}</span></div>}
-              <div className="total-row" style={{ marginTop: 8, fontSize: 18, color: "var(--gold)" }}><span style={{ fontWeight: 800 }}>الإجمالي</span><span className="total-final" style={{ fontSize: 22, fontWeight: 900, color: "var(--gold)" }}>{formatCurrency(total)}</span></div>
+            <div style={{ padding: "10px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", marginBottom: 10 }}>
+              <div className="total-row" style={{ fontSize: 12 }}><span>المجموع الفرعي</span><span>{formatCurrency(subtotal)}</span></div>
+              {discountAmt > 0 && <div className="total-row" style={{ color: "var(--green)", fontSize: 12 }}><span>خصم</span><span>- {formatCurrency(discountAmt)}</span></div>}
+              {remaining > 0 && <div className="total-row" style={{ color: "var(--red)", fontSize: 12 }}><span>متبقي</span><span>{formatCurrency(remaining)}</span></div>}
+              <div className="total-row" style={{ marginTop: 6 }}><span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>الإجمالي</span><span className="total-final">{formatCurrency(total)}</span></div>
             </div>
 
             <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", padding: "14px" }} onClick={handleCheckout} disabled={cart.length === 0}>
