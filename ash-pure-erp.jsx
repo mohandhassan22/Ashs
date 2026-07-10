@@ -202,7 +202,7 @@ const downloadInvoicePDF = async (invoice, isSharing = false, products = []) => 
     <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #8B7355; padding-bottom: 20px; margin-bottom: 30px;">
       <div style="display: flex; flex-direction: column; align-items: right; gap: 8px;">
         <img
-          src="${window.location.origin}/ashh.jpg"
+          src="${window.location.origin}/logo.jpg"
           alt="Ash Pure Logo"
           style="height: 70px; width: auto; object-fit: contain; border-radius: 8px;"
           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
@@ -1912,7 +1912,7 @@ _شركة ASH PURE_`;
             <div className="modal-body">
               <div style={{ textAlign: "center", marginBottom: 24 }}>
                 <div style={{ marginBottom: 16 }}>
-                  <img src="/ashh.jpg" alt="Ash Pure" style={{ height: 64, objectFit: "contain", borderRadius: 8 }} />
+                  <img src="/logo.jpg" alt="Ash Pure" style={{ height: 64, objectFit: "contain", borderRadius: 8 }} />
                   <div style={{ fontSize: 20, fontWeight: 900, color: "var(--text)", marginTop: 8, letterSpacing: 1 }}>ASH PURE</div>
                   <div style={{ fontSize: 12, color: "var(--text2)", marginTop: 2 }}>العناية الفائقة بالشعر</div>
                 </div>
