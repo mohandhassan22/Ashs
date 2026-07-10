@@ -106,15 +106,43 @@ const formatQty = (qty, saleUnit = 'weight') => {
 
 const getProductIcon = (p) => {
   const name = p.name || "";
-  if (name.includes("شامبو")) return "🧴";
-  if (name.includes("زيت")) return "💧";
-  if (name.includes("صابون")) return "🧼";
-  if (name.includes("كريم")) return "🧴";
-  if (name.includes("سيروم")) return "✨";
-  if (name.includes("بلسم")) return "🧴";
-  if (p.category === "العناية بالشعر") return "💇‍♀️";
-  if (p.category === "العناية بالبشرة") return "✨";
-  return "📦";
+  const cat = p.category || "";
+  const style = { color: "var(--gold)", opacity: 0.9 };
+  
+  if (name.includes("شامبو") || name.includes("بلسم") || cat.includes("شامبو") || cat.includes("بلسم") || name.includes("اسبري") || name.includes("اسبراي")) {
+    return (
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={style}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 6V3h6v3M8 6h8v13a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V6zm2 4h4m-4 4h4" />
+      </svg>
+    );
+  }
+  if (name.includes("زيت") || name.includes("سيروم") || cat.includes("زيوت") || cat.includes("سيروم")) {
+    return (
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={style}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m-3-3h6M10 9h4v10a2 2 0 0 1-2 2 2 2 0 0 1-2-2V9zm-2 4h8m-8 4h8" />
+      </svg>
+    );
+  }
+  if (name.includes("كريم") || name.includes("ماسك") || cat.includes("كريمات") || cat.includes("ماسك")) {
+    return (
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={style}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 9h12v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9zm-1-4h14v4H5V5zm4-2h6" />
+      </svg>
+    );
+  }
+  if (name.includes("صابون") || cat.includes("صابون")) {
+    return (
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={style}>
+        <rect x="4" y="6" width="16" height="12" rx="3" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M7 10h4M7 14h6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={style}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    </svg>
+  );
 };
 
 // Dynamic script loader utility for browser-side libraries
@@ -424,9 +452,9 @@ const styles = `
   .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; width: 100%; }
   
   /* Header */
-  .header { height: var(--header-h); background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 var(--p-main); gap: 16px; flex-shrink: 0; position: sticky; top: 0; z-index: 100; }
+  .header { height: var(--header-h); background: rgba(17, 17, 24, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 var(--p-main); gap: 16px; flex-shrink: 0; position: sticky; top: 0; z-index: 100; }
   .header-left { display: flex; align-items: center; gap: 12px; }
-  .menu-toggle { display: none; background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; padding: 8px; margin-right: -8px; }
+  .menu-toggle { display: none; background: none; border: none; color: var(--gold); font-size: 24px; cursor: pointer; padding: 8px; margin-right: -8px; }
   .header-title { font-size: clamp(16px, 2vw, 20px); font-weight: 700; }
   .header-actions { display: flex; align-items: center; gap: 8px; }
   
@@ -490,28 +518,39 @@ const styles = `
   textarea.form-control { resize: vertical; min-height: 100px; padding: 12px 16px; }
   
   /* POS Layout */
-  .pos-layout { display: grid; grid-template-columns: 1fr 380px; gap: var(--p-main); height: calc(100vh - var(--header-h) - (var(--p-main) * 2)); }
-  .pos-products { display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
-  .pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; overflow-y: auto; padding: 4px; padding-bottom: 80px; }
-  .pos-product-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; touch-action: manipulation; display: flex; flex-direction: column; justify-content: space-between; min-height: 190px; }
+  .pos-layout { display: grid; grid-template-columns: 1fr 420px; gap: 16px; height: calc(100vh - var(--header-h) - (var(--p-main) * 2)); min-height: 0; }
+  .pos-products { display: flex; flex-direction: column; gap: 10px; overflow: hidden; min-height: 0; }
+  .pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; overflow-y: auto; overflow-x: hidden; padding: 4px 2px; padding-bottom: 20px; flex: 1; min-height: 0; }
+  .pos-grid::-webkit-scrollbar { width: 4px; }
+  .pos-grid::-webkit-scrollbar-track { background: transparent; }
+  .pos-grid::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.25); border-radius: 4px; }
+  .pos-product-card { background: rgba(20, 20, 30, 0.4); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 12px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; touch-action: manipulation; display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
   .pos-product-card:hover { border-color: var(--gold); box-shadow: var(--shadow-gold); transform: translateY(-3px); }
   .pos-product-card:active { transform: scale(0.96); }
-  .pos-product-img { width: 100%; aspect-ratio: 1; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--card2), rgba(212,175,55,0.05)); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 36px; transition: transform 0.3s ease; }
-  .pos-product-card:hover .pos-product-img { transform: scale(1.05) rotate(3deg); }
-  .pos-product-name { font-size: 13px; font-weight: 700; margin-bottom: 8px; line-height: 1.4; display: block; overflow: visible; word-wrap: break-word; color: var(--text); }
-  .pos-product-price { font-size: 16px; font-weight: 900; color: var(--gold); }
+  .pos-product-img { width: 100%; aspect-ratio: 1; border-radius: var(--radius-sm); background: linear-gradient(135deg, rgba(20, 20, 30, 0.8), rgba(212, 175, 55, 0.08)); border: 1px solid rgba(212, 175, 55, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; transition: all 0.3s ease; }
+  .pos-product-card:hover .pos-product-img { transform: scale(1.05); border-color: rgba(212, 175, 55, 0.3); }
+  .pos-product-name { font-size: 12px; font-weight: 700; margin-bottom: 6px; line-height: 1.4; display: block; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: var(--text); }
+  .pos-product-price { font-size: 15px; font-weight: 900; color: var(--gold); }
+  .pos-product-qty { font-size: 11px; margin-top: 4px; }
   
-  .cart { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-  .cart-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .cart { background: rgba(20, 20, 30, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(212, 175, 55, 0.15); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); min-height: 0; height: 100%; }
+  .cart-header { padding: 14px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
   .cart-toggle-btn { display: none; background: none; border: none; color: var(--text); font-size: 24px; padding: 8px; margin: -8px; }
-  .cart-items { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-  .cart-item { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card2); transition: all 0.2s ease; position: relative; }
-  .cart-item:hover { border-color: rgba(212,175,55,0.25); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-  .cart-item-name { font-size: 14px; font-weight: 700; line-height: 1.4; }
-  .cart-item-qty { display: flex; align-items: center; gap: 8px; }
-  .qty-btn { width: 30px; height: 30px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.15s ease; touch-action: manipulation; }
-  .qty-btn:hover { border-color: var(--gold); color: var(--gold); }
-  .qty-btn:active { background: var(--border); }
+  .cart-items { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+  .cart-items::-webkit-scrollbar { width: 4px; }
+  .cart-items::-webkit-scrollbar-track { background: transparent; }
+  .cart-items::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.2); border-radius: 4px; }
+  .cart-footer { padding: 12px 16px; border-top: 1px solid var(--border); flex-shrink: 0; background: rgba(15,15,22,0.6); }
+  .cart-item { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: var(--radius); border: 1px solid rgba(212,175,55,0.12); background: rgba(20,20,30,0.45); backdrop-filter: blur(8px); transition: all 0.2s ease; position: relative; }
+  .cart-item:hover { border-color: rgba(212,175,55,0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .cart-item-name { font-size: 13px; font-weight: 700; line-height: 1.4; }
+  .cart-item-qty { display: flex; align-items: center; gap: 6px; }
+  .qty-btn { width: 26px; height: 26px; border-radius: 6px; background: transparent; border: 1px solid var(--gold); color: var(--gold); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; transition: all 0.15s ease; touch-action: manipulation; }
+  .qty-btn:hover { background: rgba(212,175,55,0.15); }
+  .qty-btn:active { background: rgba(212,175,55,0.25); }
+  
+  .total-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 13px; color: var(--text2); }
+  .total-final { font-size: 22px; font-weight: 900; color: var(--gold); }
   
   /* Badges & Utility */
   .badge { display: inline-flex; align-items: center; justify-content: center; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; }
@@ -522,9 +561,15 @@ const styles = `
   /* Media Queries for Responsive Design */
   @media (max-width: 1440px) {
     .grid-4 { grid-template-columns: repeat(3, 1fr); }
+    .pos-layout { grid-template-columns: 1fr 400px; }
+  }
+  @media (max-width: 1280px) {
+    .pos-layout { grid-template-columns: 1fr 360px; }
+    .pos-grid { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); }
   }
   @media (max-width: 1024px) {
-    .pos-layout { grid-template-columns: 1fr 320px; }
+    .pos-layout { grid-template-columns: 1fr 310px; gap: 12px; }
+    .pos-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
     .grid-4 { grid-template-columns: repeat(2, 1fr); }
     .grid-3 { grid-template-columns: repeat(2, 1fr); }
   }
@@ -562,9 +607,9 @@ const styles = `
     .table-wrap td::before { content: attr(data-label); color: var(--text2); font-weight: 600; font-size: 12px; margin-left: 16px; }
   }
   @media (max-width: 480px) {
-    .pos-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .pos-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
     .card { padding: 16px; }
-    .search-bar { display: none; } /* Hide search bar on very small screens to save header space */
+    .header .search-bar { display: none; } /* Hide search bar in header on very small screens to save header space */
   }
 
   /* Tabs Navigation */
@@ -1432,21 +1477,21 @@ _شركة ASH PURE_`;
   const discountPct = subtotal > 0 ? ((discountAmt / subtotal) * 100).toFixed(1) : 0;
   const taxAmt = ((subtotal - discountAmt) * tax) / 100;
   const total = subtotal - discountAmt + taxAmt;
-  const remaining = paymentMethod === "deferred" ? total - (+paidAmount || 0) : 0;
+  const remaining = paymentMethod === "deferred" ? total : 0;
   const totalCartQty = cart.reduce((s, item) => s + item.qty, 0);
 
   const handleCheckout = async () => {
     if (cart.length === 0) return showNotif("السلة فارغة", "warning");
     if (paymentMethod === "deferred" && !selectedCustomer) return showNotif("اختر العميل للدفع الآجل", "warning");
     const invoiceId = generateId("INV");
-    const paidAmt = paymentMethod === "deferred" ? (+paidAmount || 0) : total;
+    const paidAmt = paymentMethod === "deferred" ? 0 : total;
     const { error: invErr } = await supabase.from("invoices").insert({
       id: invoiceId, customer_id: selectedCustomer?.id || null,
       customer_name: selectedCustomer?.name || "عميل نقدي", customer_type: customerType,
       customer_phone: selectedCustomer?.phone || "",
       subtotal, discount, tax, total, paid: paidAmt, remaining,
       payment_method: paymentMethod, date: new Date().toISOString().split("T")[0],
-      due_date: dueDate || null, status: remaining > 0 ? "partial" : "paid",
+      due_date: null, status: paymentMethod === "deferred" ? "deferred" : (remaining > 0 ? "partial" : "paid"),
       created_by: (user?.id ?? null),
     });
     if (invErr) { showNotif("خطأ عند إنشاء الفاتورة: " + invErr.message, "error"); return; }
@@ -1479,13 +1524,13 @@ _شركة ASH PURE_`;
       </div>
       <div className="pos-layout">
         <div className="pos-products">
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <div className="search-bar" style={{ flex: 1 }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
+            <div className="search-bar" style={{ flex: 1, minWidth: "200px" }}>
               <Icon name="search" size={16} />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث بالاسم أو الباركود..." />
               {search && <button className="btn-icon" style={{ padding: 2 }} onClick={() => setSearch("")}><Icon name="close" size={12} /></button>}
             </div>
-            <div style={{ display: "flex", gap: 4 }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {customerTypes.map(t => (
                 <button key={t.id} className={`btn btn-sm ${customerType === t.id ? "btn-primary" : "btn-secondary"}`} onClick={() => {
                   setCustomerType(t.id);
@@ -1537,80 +1582,135 @@ _شركة ASH PURE_`;
           <div className="cart-header">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button className="cart-toggle-btn" onClick={() => setMobileCartOpen(false)}><Icon name="close" size={24} /></button>
-                <span style={{ fontWeight: 700 }}>🛒 السلة ({cart.length} منتج)</span>
+                <button className="cart-toggle-btn" onClick={() => setMobileCartOpen(false)} style={{ color: "var(--gold)" }}><Icon name="close" size={24} /></button>
+                <span style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}><Icon name="cart" size={16} style={{ color: "var(--gold)" }} /> السلة ({cart.length} منتج)</span>
               </div>
-              {cart.length > 0 && <button className="btn btn-danger btn-sm" onClick={() => setCart([])}>مسح الكل</button>}
+              {cart.length > 0 && <button className="btn btn-danger btn-sm" style={{ background: "rgba(224,90,90,0.15)", color: "var(--red)", border: "1px solid rgba(224,90,90,0.3)" }} onClick={() => setCart([])}>مسح الكل</button>}
             </div>
-            <div className="form-group" style={{ marginBottom: 8 }}>
-              <label className="form-label">العميل</label>
-              <select className="form-control" value={selectedCustomer?.id || ""} onChange={e => {
-                const customerId = e.target.value;
-                setSelectedCustomer(customers.find(c => c.id === customerId) || null);
-                setCart(prev => prev.map(item => ({ ...item, isCustomPrice: false })));
-              }}>
-                <option value="">عميل نقدي / بدون حساب</option>
-                {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label className="form-label" style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 6, display: 'block' }}>العميل</label>
+              <div style={{ position: 'relative' }}>
+                <select 
+                  className="form-control" 
+                  value={selectedCustomer?.id || ""} 
+                  onChange={e => {
+                    const customerId = e.target.value;
+                    setSelectedCustomer(customers.find(c => c.id === customerId) || null);
+                    setCart(prev => prev.map(item => ({ ...item, isCustomPrice: false })));
+                  }}
+                  style={{
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border)',
+                    background: 'rgba(20, 20, 30, 0.8)',
+                    padding: '8px 12px 8px 32px',
+                    color: '#fff',
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+                    width: '100%',
+                    height: '38px',
+                    outline: 'none',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    backgroundImage: 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23D4AF37\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'6 9 12 15 18 9\'></polyline></svg>")',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'left 10px center',
+                    backgroundSize: '14px'
+                  }}
+                >
+                  <option value="" style={{ background: 'var(--bg2)', color: '#fff' }}>عميل نقدي / بدون حساب</option>
+                  {customers.map(c => (
+                    <option key={c.id} value={c.id} style={{ background: 'var(--bg2)', color: '#fff' }}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
           <div className="cart-items">
             {cart.length === 0 ? (
-              <div className="empty"><div className="empty-icon">🛒</div><div>السلة فارغة</div><div style={{ fontSize: 12, marginTop: 4 }}>اختر منتجاً للبدء</div></div>
+              <div className="empty"><div className="empty-icon" style={{ color: "var(--gold)" }}><Icon name="cart" size={48} /></div><div>السلة فارغة</div><div style={{ fontSize: 12, marginTop: 4 }}>اختر منتجاً للبدء</div></div>
             ) : (
               cart.map(item => (
                 <div className="cart-item" key={item.productId} style={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
                   gap: 12, 
-                  padding: 16, 
+                  padding: '12px 14px', 
                   borderRadius: 'var(--radius)', 
-                  border: '1px solid var(--border)', 
-                  background: 'var(--card2)',
+                  border: '1px solid rgba(212, 175, 55, 0.15)', 
+                  background: 'rgba(20, 20, 30, 0.45)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
                   transition: 'border-color 0.2s',
                   position: 'relative'
                 }}>
-                  {/* Top Row: Name, Badges and Delete Button */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                      <div className="cart-item-name" style={{ 
-                        fontWeight: 700, 
-                        fontSize: 14,
-                        color: 'var(--text)',
-                        wordBreak: 'break-word',
-                        whiteSpace: 'normal'
+                  {/* Main Info Row: Icon, Name, Qty Adjuster, Price, Delete */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between', width: '100%' }}>
+                    {/* Left part: Icon & Name & Price */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'linear-gradient(135deg, rgba(20,20,30,0.8), rgba(212,175,55,0.08))',
+                        border: '1px solid rgba(212,175,55,0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
                       }}>
-                        {item.name}
+                        {/* Render custom SVG icon scaled down */}
+                        <div style={{ transform: 'scale(0.55)', transformOrigin: 'center' }}>{getProductIcon(item)}</div>
                       </div>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        {item.movement_type === 'gift' && <span className="badge badge-green" style={{ fontSize: 10, padding: '2px 8px' }}>هدية 🎁</span>}
-                        {item.movement_type === 'waste' && <span className="badge badge-red" style={{ fontSize: 10, padding: '2px 8px' }}>هالك 🗑️</span>}
-                        {item.movement_type === 'sale' && <span className="badge badge-gold" style={{ fontSize: 10, padding: '2px 8px' }}>بيع 💰</span>}
+                      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                        <span className="cart-item-name" style={{ 
+                          fontWeight: 700, 
+                          fontSize: 13,
+                          color: 'var(--text)',
+                          wordBreak: 'break-word',
+                          whiteSpace: 'normal',
+                          lineHeight: 1.2
+                        }}>
+                          {item.name}
+                        </span>
+                        {/* Price Input or Label */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                          {item.movement_type === 'sale' ? (
+                            <>
+                              <input 
+                                type="number" 
+                                value={item.price} 
+                                onChange={(e) => {
+                                  const newPrice = parseFloat(e.target.value) || 0;
+                                  setCart(prev => prev.map(ci => ci.productId === item.productId ? { ...ci, price: newPrice, total: ci.unit === 'g' ? (ci.qty * newPrice / 1000) : (ci.qty * newPrice), isCustomPrice: true } : ci));
+                                }} 
+                                style={{ 
+                                  width: 60, 
+                                  background: 'rgba(20, 20, 30, 0.6)', 
+                                  border: '1px solid rgba(212, 175, 55, 0.25)', 
+                                  borderRadius: 'var(--radius-sm)', 
+                                  color: 'var(--gold)', 
+                                  padding: '2px 4px',
+                                  textAlign: 'center',
+                                  fontFamily: 'inherit',
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  outline: 'none'
+                                }}
+                              />
+                              <span style={{ fontSize: 10, color: 'var(--text3)' }}>ج.م</span>
+                            </>
+                          ) : (
+                            <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700 }}>هدية مجانًا</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <button className="btn-icon" style={{ 
-                      width: 28, 
-                      height: 28, 
-                      borderRadius: '50%', 
-                      color: 'var(--red)', 
-                      borderColor: 'transparent',
-                      background: 'rgba(224,90,90,0.1)' 
-                    }} onClick={() => removeFromCart(item.productId)} title="إزالة من السلة">
-                      <Icon name="close" size={12} />
-                    </button>
-                  </div>
 
-                  {/* Divider */}
-                  <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
-
-                  {/* Bottom Row: Qty Controls, Price Input, Movement Toggle, Total Price */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                    {/* Qty Controls */}
-                    <div className="cart-item-qty" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <button className="qty-btn" style={{ width: 28, height: 28 }} onClick={() => updateQty(item.productId, -1)}>−</button>
+                    {/* Center part: Qty adjusters [+ / Qty / -] */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                      <button className="qty-btn" style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid var(--gold)', color: 'var(--gold)', fontWeight: 'bold' }} onClick={() => updateQty(item.productId, -1)}>−</button>
                       <input 
                         type="number" 
                         value={item.qty} 
@@ -1633,94 +1733,40 @@ _شركة ASH PURE_`;
                           }));
                         }}
                         style={{
-                          width: 65,
-                          background: 'var(--card)',
-                          border: '1px solid var(--border)',
+                          width: 44,
+                          background: 'rgba(20, 20, 30, 0.6)',
+                          border: '1px solid rgba(255,255,255,0.08)',
                           borderRadius: 'var(--radius-sm)',
                           color: 'var(--text)',
-                          padding: '4px 4px',
+                          padding: '2px 2px',
                           textAlign: 'center',
                           fontFamily: 'inherit',
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: 700,
                           outline: 'none'
                         }}
                       />
-                      <button className="qty-btn" style={{ width: 28, height: 28 }} onClick={() => updateQty(item.productId, 1)}>+</button>
-                      
-                      {/* Only show/enable unit toggle button if item is weight-based */}
-                      {(item.unit === 'kg' || item.unit === 'g') ? (
-                        <button 
-                          onClick={() => toggleUnit(item.productId)}
-                          style={{
-                            border: '1px solid var(--border)',
-                            background: 'var(--card)',
-                            color: 'var(--gold)',
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: '4px 8px',
-                            borderRadius: 'var(--radius-sm)',
-                            cursor: 'pointer',
-                            minHeight: 28
-                          }}
-                        >
-                          {item.unit === 'g' ? 'جرام' : 'كيلو'}
-                        </button>
-                      ) : (
-                        <span 
-                          style={{
-                            border: '1px solid var(--border)',
-                            background: 'rgba(255,255,255,0.02)',
-                            color: 'var(--text3)',
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: '4px 8px',
-                            borderRadius: 'var(--radius-sm)',
-                            minHeight: 28,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          قطعة
-                        </span>
-                      )}
+                      <button className="qty-btn" style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid var(--gold)', color: 'var(--gold)', fontWeight: 'bold' }} onClick={() => updateQty(item.productId, 1)}>+</button>
                     </div>
 
-                    {/* Price Input or Label */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {item.movement_type === 'sale' ? (
-                        <>
-                          <input 
-                            type="number" 
-                            value={item.price} 
-                            onChange={(e) => {
-                              const newPrice = parseFloat(e.target.value) || 0;
-                              setCart(prev => prev.map(ci => ci.productId === item.productId ? { ...ci, price: newPrice, total: ci.unit === 'g' ? (ci.qty * newPrice / 1000) : (ci.qty * newPrice), isCustomPrice: true } : ci));
-                            }} 
-                            style={{ 
-                              width: 65, 
-                              background: 'var(--card)', 
-                              border: '1px solid var(--border)', 
-                              borderRadius: 'var(--radius-sm)', 
-                              color: 'var(--gold)', 
-                              padding: '4px 6px',
-                              textAlign: 'center',
-                              fontFamily: 'inherit',
-                              fontSize: 12,
-                              fontWeight: 700,
-                              outline: 'none'
-                            }}
-                          />
-                          <span style={{ fontSize: 11, color: 'var(--text3)' }}>ج.م</span>
-                        </>
-                      ) : (
-                        <span style={{ fontSize: 12, color: 'var(--text3)' }}>مجانًا</span>
-                      )}
-                    </div>
+                    {/* Right part: Delete Button */}
+                    <button className="btn-icon" style={{ 
+                      width: 26, 
+                      height: 26, 
+                      borderRadius: '50%', 
+                      color: 'var(--red)', 
+                      borderColor: 'transparent',
+                      background: 'rgba(224,90,90,0.1)',
+                      flexShrink: 0
+                    }} onClick={() => removeFromCart(item.productId)} title="إزالة من السلة">
+                      <Icon name="close" size={10} />
+                    </button>
+                  </div>
 
-                    {/* Movement Type Toggle Button Group */}
-                    <div style={{ display: 'flex', background: 'var(--card)', padding: 2, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                  {/* Sub-row for extra controls if weight based or movement type customisation */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 8 }}>
+                    {/* Movement Type Toggle */}
+                    <div style={{ display: 'flex', background: 'rgba(20, 20, 30, 0.6)', padding: 2, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                       {[['sale', 'بيع'], ['gift', 'هدية'], ['waste', 'هالك']].map(([type, label]) => {
                         const active = (item.movement_type || 'sale') === type;
                         let activeColor = 'var(--gold)';
@@ -1743,7 +1789,7 @@ _شركة ASH PURE_`;
                               color: active ? activeColor : 'var(--text3)',
                               fontSize: 10,
                               fontWeight: 700,
-                              padding: '4px 8px',
+                              padding: '3px 8px',
                               borderRadius: 4,
                               cursor: 'pointer',
                               transition: 'all 0.15s'
@@ -1755,9 +1801,46 @@ _شركة ASH PURE_`;
                       })}
                     </div>
 
-                    {/* Total Price */}
-                    <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--gold)', minWidth: 60, textAlign: 'left' }}>
-                      {formatCurrency(item.total)}
+                    {/* Unit selection or total item sum */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {(item.unit === 'kg' || item.unit === 'g') ? (
+                        <button 
+                          onClick={() => toggleUnit(item.productId)}
+                          style={{
+                            border: '1px solid var(--border)',
+                            background: 'rgba(20, 20, 30, 0.6)',
+                            color: 'var(--gold)',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: '3px 6px',
+                            borderRadius: 4,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {item.unit === 'g' ? 'جرام' : 'كيلو'}
+                        </button>
+                      ) : (
+                        <span 
+                          style={{
+                            border: '1px solid var(--border)',
+                            background: 'rgba(255,255,255,0.02)',
+                            color: 'var(--text3)',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: '3px 6px',
+                            borderRadius: 4,
+                            minHeight: 20,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          قطعة
+                        </span>
+                      )}
+                      <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--gold)', minWidth: 60, textAlign: 'left' }}>
+                        {formatCurrency(item.total)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1766,7 +1849,7 @@ _شركة ASH PURE_`;
           </div>
 
           <div className="cart-footer">
-            <div className="grid grid-2" style={{ marginBottom: 12 }}>
+            <div className="grid grid-2" style={{ marginBottom: 10 }}>
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label">خصم بالجنيه (ج.م)</label>
                 <input className="form-control" type="number" min="0" value={discount} onChange={e => setDiscount(+e.target.value)} placeholder="0" />
@@ -1789,26 +1872,12 @@ _شركة ASH PURE_`;
               </div>
             </div>
 
-            {paymentMethod === "deferred" && (
-              <div className="grid grid-2" style={{ marginBottom: 12 }}>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">المبلغ المدفوع</label>
-                  <input className="form-control" type="number" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} placeholder="0" />
-                </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">تاريخ الاستحقاق</label>
-                  <input className="form-control" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
-                </div>
-              </div>
-            )}
-
             <div style={{ padding: "12px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", marginBottom: 12 }}>
-              <div className="total-row"><span>المجموع الفرعي</span><span>{formatCurrency(subtotal)}</span></div>
-              {discountAmt > 0 && <div className="total-row" style={{ color: "var(--green)" }}><span>خصم ({discountPct}%)</span><span>- {formatCurrency(discountAmt)}</span></div>}
-              {tax > 0 && <div className="total-row" style={{ color: "var(--text2)" }}><span>ضريبة ({tax}%)</span><span>+ {formatCurrency(taxAmt)}</span></div>}
-              {paymentMethod === "deferred" && paidAmount && <div className="total-row" style={{ color: "var(--green)" }}><span>المدفوع</span><span>{formatCurrency(+paidAmount)}</span></div>}
-              {remaining > 0 && <div className="total-row" style={{ color: "var(--red)" }}><span>المتبقي</span><span>{formatCurrency(remaining)}</span></div>}
-              <div className="total-row" style={{ marginTop: 8 }}><span style={{ fontSize: 16, fontWeight: 700 }}>الإجمالي</span><span className="total-final">{formatCurrency(total)}</span></div>
+              <div className="total-row" style={{ fontSize: 13 }}><span>المجموع الفرعي</span><span>{formatCurrency(subtotal)}</span></div>
+              {discountAmt > 0 && <div className="total-row" style={{ color: "var(--green)", fontSize: 13 }}><span>خصم ({discountPct}%)</span><span>- {formatCurrency(discountAmt)}</span></div>}
+              {tax > 0 && <div className="total-row" style={{ color: "var(--text2)", fontSize: 13 }}><span>ضريبة ({tax}%)</span><span>+ {formatCurrency(taxAmt)}</span></div>}
+              {remaining > 0 && <div className="total-row" style={{ color: "var(--red)", fontSize: 13 }}><span>المتبقي</span><span>{formatCurrency(remaining)}</span></div>}
+              <div className="total-row" style={{ marginTop: 8, fontSize: 18, color: "var(--gold)" }}><span style={{ fontWeight: 800 }}>الإجمالي</span><span className="total-final" style={{ fontSize: 22, fontWeight: 900, color: "var(--gold)" }}>{formatCurrency(total)}</span></div>
             </div>
 
             <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", padding: "14px" }} onClick={handleCheckout} disabled={cart.length === 0}>
@@ -3648,19 +3717,24 @@ export default function App() {
         <div className="main">
           <header className="header">
             <div className="header-left">
-              <button className="menu-toggle" onClick={() => setSidebarOpen(true)}><Icon name="menu" size={24} /></button>
+              <button className="menu-toggle" onClick={() => setSidebarOpen(true)}><Icon name="menu" size={24} style={{ color: "var(--gold)" }} /></button>
               <span className="header-title">{pageTitle}</span>
+            </div>
+            {/* Center Logo Branding */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span className="logo-brand" style={{ fontSize: 18, fontWeight: 900, letterSpacing: 1.5 }}>ASH PURE</span>
+              <span style={{ background: "var(--gold)", color: "#000", fontSize: 9, fontWeight: 900, padding: "2px 4px", borderRadius: 4, transform: "scale(0.85)" }}>AP</span>
             </div>
             <div className="header-actions">
               <div className="search-bar">
                 <Icon name="search" size={16} />
                 <input value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} placeholder="بحث سريع..." />
               </div>
-              <button className="btn-icon" style={{ position: "relative" }} title="الإشعارات" onClick={() => setPage("products")}>
+              <button className="btn-icon" style={{ position: "relative", color: "var(--gold)" }} title="الإشعارات" onClick={() => setPage("products")}>
                 <Icon name="bell" size={18} />
                 {lowStockCount > 0 && <span style={{ position: "absolute", top: -4, left: -4, width: 16, height: 16, background: "var(--red)", borderRadius: "50%", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>{lowStockCount}</span>}
               </button>
-              <button className="btn btn-primary btn-sm" onClick={() => setPage("pos")}><Icon name="cart" size={16} />بيع جديد</button>
+              <button className="btn btn-primary btn-sm" style={{ borderRadius: 22, color: "#fff", background: "linear-gradient(135deg, var(--gold), var(--gold-dark))" }} onClick={() => setPage("pos")}><Icon name="cart" size={16} />بيع جديد</button>
             </div>
           </header>
 
