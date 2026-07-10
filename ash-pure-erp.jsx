@@ -199,18 +199,18 @@ const downloadInvoicePDF = async (invoice, isSharing = false, products = []) => 
 
   container.innerHTML = `
     <!-- Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #8B7355; padding-bottom: 20px; margin-bottom: 30px;">
-      <div style="display: flex; align-items: center; gap: 14px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #8B7355; padding-bottom: 20px; margin-bottom: 30px;">
+      <div style="display: flex; flex-direction: column; align-items: right; gap: 8px;">
         <img
-          src="${window.location.origin}/ashh.png"
+          src="${window.location.origin}/ashh.jpg"
           alt="Ash Pure Logo"
-          style="height: 70px; width: auto; object-fit: contain;"
+          style="height: 70px; width: auto; object-fit: contain; border-radius: 8px;"
           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
         />
-          <div style="display:none;">
-            <h1 style="margin: 0; font-size: 32px; font-weight: 900; color: #8B7355; letter-spacing: 2px;">ASH PURE</h1>
-            <p style="margin: 5px 0 0; font-size: 13px; color: #666666;">العناية الفائقة بالشعر</p>
-          </div>
+        <div>
+          <h1 style="margin: 0; font-size: 24px; font-weight: 900; color: #8B7355; letter-spacing: 1px;">ASH PURE</h1>
+          <p style="margin: 2px 0 0; font-size: 13px; color: #666666;">العناية الفائقة بالشعر</p>
+        </div>
       </div>
 
       <div style="text-align: left;">
@@ -1509,6 +1509,7 @@ _شركة ASH PURE_`;
     const displayInvoice = {
       id: invoiceId, customerName: selectedCustomer?.name || "عميل نقدي",
       date: new Date().toISOString().split("T")[0], total,
+      subtotal, discount: discountAmt, paymentMethod,
       items: cart.map(i => ({ productId: i.productId, name: i.name, qty: i.unit === 'g' ? i.qty / 1000 : i.qty, total: i.total })),
     };
     setShowSuccess(displayInvoice);
@@ -1910,8 +1911,12 @@ _شركة ASH PURE_`;
             </div>
             <div className="modal-body">
               <div style={{ textAlign: "center", marginBottom: 24 }}>
-                <div style={{ fontSize: 48, marginBottom: 12 }}>🧾</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "var(--gold)" }}>{showSuccess.id}</div>
+                <div style={{ marginBottom: 16 }}>
+                  <img src="/ashh.jpg" alt="Ash Pure" style={{ height: 64, objectFit: "contain", borderRadius: 8 }} />
+                  <div style={{ fontSize: 20, fontWeight: 900, color: "var(--text)", marginTop: 8, letterSpacing: 1 }}>ASH PURE</div>
+                  <div style={{ fontSize: 12, color: "var(--text2)", marginTop: 2 }}>العناية الفائقة بالشعر</div>
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "var(--gold)", marginTop: 12 }}>{showSuccess.id}</div>
                 <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>{formatCurrency(showSuccess.total)}</div>
                 <div style={{ color: "var(--text2)", marginTop: 4 }}>{showSuccess.customerName} • {formatDate(showSuccess.date)}</div>
               </div>
@@ -1926,6 +1931,29 @@ _شركة ASH PURE_`;
                     </div>
                   );
                 })}
+              </div>
+              {/* Totals breakdown */}
+              <div style={{ background: "var(--card)", borderRadius: "var(--radius-sm)", padding: "12px 16px", marginBottom: 16, display: "flex", flexDirection: "column", gap: 6 }}>
+                {showSuccess.discount > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--text2)" }}>
+                    <span>المجموع قبل الخصم</span>
+                    <span>{formatCurrency(showSuccess.subtotal)}</span>
+                  </div>
+                )}
+                {showSuccess.discount > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--green)", fontWeight: 700 }}>
+                    <span>خصم ✨</span>
+                    <span>- {formatCurrency(showSuccess.discount)}</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 900, color: "var(--gold)", borderTop: showSuccess.discount > 0 ? "1px solid var(--border)" : "none", paddingTop: showSuccess.discount > 0 ? 8 : 0, marginTop: showSuccess.discount > 0 ? 4 : 0 }}>
+                  <span>الإجمالي</span>
+                  <span>{formatCurrency(showSuccess.total)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text3)", marginTop: 2 }}>
+                  <span>طريقة الدفع</span>
+                  <span>{PAYMENT_METHODS.find(m => m.id === showSuccess.paymentMethod)?.label || showSuccess.paymentMethod}</span>
+                </div>
               </div>
             </div>
             <div className="modal-footer" style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "space-between", width: "100%" }}>
@@ -3397,7 +3425,7 @@ function SettingsPage({ user, showNotif, reloadData }) {
                     'رقم الهاتف': inv.customer_phone,
                     'نوع العميل': inv.customer_type === 'trader' ? 'تاجر جملة' : inv.customer_type === 'specialist' ? 'أخصائي' : 'عميل تجزئة',
                     'المنتجات': itemsStr,
-                    'المجموع الفرعي': inv.subtotal,
+                    'المجموع ': inv.subtotal,
                     'الخصم': inv.discount,
                     'الضريبة': inv.tax,
                     'الإجمالي': inv.total,
@@ -3446,7 +3474,7 @@ function SettingsPage({ user, showNotif, reloadData }) {
                       'رقم الفاتورة': inv.id,
                       'التاريخ': inv.date,
                       'المنتجات المشتراة': itemsStr,
-                      'المجموع الفرعي': inv.subtotal,
+                      'المجموع ': inv.subtotal,
                       'الخصم': inv.discount,
                       'الضريبة': inv.tax,
                       'الإجمالي': inv.total,
